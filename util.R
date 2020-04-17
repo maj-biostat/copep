@@ -55,55 +55,6 @@ prob_equiv <- function(m, eq_delta) {
   unlist(lapply(1:ncol(m), function(x){mean(abs(m[, 1] - m[, x])<eq_delta)}))
 }
 
-#' Calculate matrix of pairwise differences of MC draws
-#'
-#' @param mat The matrix of draws
-#' @param trans A transformation function, default is identity \code{I()}.
-#' @return A matrix of pairwise differences
-#' @export
-#' @importFrom utils combn
-pairwise_diff <- function(mat, trans = I) {
-  trans <- match.fun(trans)
-  pair_comp <- combn(ncol(mat), 2)
-  trans_mat <- trans(mat)
-  pair_mat <- apply(pair_comp, 2, function(x) trans_mat[,x[1]] - trans_mat[,x[2]])
-  colnames(pair_mat) <- apply(pair_comp, 2, paste, collapse = "-")
-  return(pair_mat)
-}
-
-
-#' Make a pairwise comparison between parameter draws
-#'
-#' @param mat Matrix of parameter draws
-#' @param eps Reference value, default is \code{0}.
-#' @return Vector of probabilities that pairwise difference is greater than \code{eps}.
-#' @export
-pairwise_comp <- function(mat, eps = 0) {
-  pmat <- pairwise_diff(mat)
-  apply(pmat, 2, function(x) mean(x > eps))
-}
-
-#' Bayesian response adaptive randomisation
-#'
-#' @param pbest Probability arm is best
-#' @param sampsize Current sample size allocated to arm
-#' @param variance Current posterior variance
-#' @param inactive Flag for if an arm should receive zero allocations
-#' @param fix_ctrl Fix allocation to control by this amount
-#'
-#' @return A numeric vector giving the BRAR allocation probabilities
-#' @export
-brar <- function(pbest, sampsize, variance, inactive) {
-  stopifnot(all(pbest >= 0))
-  stopifnot(all(sampsize > 0))
-  m <- length(pbest)
-  r <- sqrt(pbest * variance / sampsize)
-  r[inactive] <- 0
-  w <- r / sum(r)
-  
-  return(w)
- 
-}
 
 
 
