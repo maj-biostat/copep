@@ -126,48 +126,6 @@ RAR_alloc <- function(clustid, a_s, idxstart, idxend, interim_idx){
     }
     
 
-    # arm_to_enable <- which((a_s$enabled_at <= interim_idx & 
-    #                           a_s$enabled_at > 0 & 
-    #                           a_s$active)==T)
-    # 
-    # message(get_hash(), " arm_to_enable ", arm_to_enable, 
-    #         " arms_for_p_best ", 
-    #         paste0(arms_for_p_best, collapse = " "), " active ",
-    #         paste0(active_arms, collapse = " "))
-    # 
-    # mass_remaining <- 1
-    # 
-    # # Workaround for horrendous logical(0) in if statement.
-    # arm_to_enable_in_post <- F
-    # if(length(arm_to_enable)==0){
-    #   arm_to_enable_in_post <- T
-    # } else {
-    #   arm_to_enable_in_post <- all(arm_to_enable %in% arms_for_p_best)
-    # }
-    # 
-    # tryCatch({
-    #   
-    #   message(get_hash(), " try if arm_to_enable ", 
-    #           arm_to_enable, 
-    #           " arms_for_p_best ", paste0(arms_for_p_best, collapse = " "), 
-    #           " interim id is ", interim_idx, " arm_to_enable_in_post ", 
-    #           arm_to_enable_in_post)
-    # 
-    #   if(length(arm_to_enable) > 0 & !(arm_to_enable_in_post)){
-    #     
-    #     message(get_hash(), " randomising arm ", arm_to_enable, " to be enabled with balanced prob ")
-    #     
-    #     a_s$p_rand[arm_to_enable] <- 1/sum(a_s$active)
-    #     mass_remaining <- 1 - a_s$p_rand[arm_to_enable]
-    #     
-    #   }}, error = function(e){
-    #   
-    #     dump.frames(include.GlobalEnv = T)
-    #     save.image(file = paste0(get_hash(), "_last.dump.rda"))
-    #     stop("a")
-    #     
-    #   })
-
 
     a_s$p_rand[arms_for_p_best] <- (r/sum(r))[arms_for_p_best] * mass_remaining
     
@@ -204,45 +162,7 @@ RAR_alloc <- function(clustid, a_s, idxstart, idxend, interim_idx){
                            replace = T, 
                            prob = a_s$p_rand))
     }
-    
-    # tryCatch({
-    #   
-    #   message(get_hash(), " if arm_to_enable ", 
-    #           arm_to_enable, 
-    #           " arms_for_p_best ", paste0(arms_for_p_best, collapse = " "), 
-    #           " interim id is ", interim_idx)
-    #   
-    #   if(length(arm_to_enable) > 0 & !(arm_to_enable_in_post)){
-    #     
-    #     message(get_hash(), " alloc for arm ", arm_to_enable, 
-    #             " w/o post draws, which currently has arms ",
-    #             paste0(a_s$arms_in_post, collapse = " "))
-    #     
-    #     # Note that in the first case p_rand is irrelevant and in the 
-    #     # second case p_rand = 0 takes care of inactive arms.
-    #     rand_arm <- c(sample(active_arms, 
-    #                          size = length(active_arms), 
-    #                          replace = F),
-    #                   sample(1:a_s$K, 
-    #                          size = J-length(active_arms), 
-    #                          replace = T, 
-    #                          prob = a_s$p_rand))
-    #   }
-    #   else {
-    #     
-    #     rand_arm <- c(sample(1:a_s$K, 
-    #                          size = J, 
-    #                          replace = T, 
-    #                          prob = a_s$p_rand))
-    #   }
-    #   
-    #   }, error = function(e){
-    #     
-    #     dump.frames(include.GlobalEnv = T)
-    #     save.image(file = paste0(get_hash(), "_blast.dump.rda"))
-    #     stop("b")
-    #     
-    #   })
+ 
     
 
     tbl <- table(rand_arm)
