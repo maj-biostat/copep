@@ -198,9 +198,9 @@ sim <- function(cfg_interface = NULL){
 
 # sim(cfg_fixed4(trial_interface = trial_Fixed_BR, outdir = "outfix4", nsim = 2000))
 
-sim(cfg_rar_3(trial_interface = trial_GS_RAR, outdir = "outrar", nsim = 5000))
+sim(cfg_rar_3(trial_interface = trial_GS_RAR, outdir = "outrar", nsim = 100))
 #sim(cfg_fixed(trial_interface = trial_Fixed_BR, outdir = "outfix", nsim = 1000))
-sim(cfg_rar_4(trial_interface = trial_GS_RAR, outdir = "outrar4", nsim = 5000))
+sim(cfg_rar_4(trial_interface = trial_GS_RAR, outdir = "outrar4", nsim = 100))
 
 
 

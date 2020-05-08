@@ -1,0 +1,93 @@
+.main-container {
+    max-width: 2000px !important;
+  }
+  
+  
+body {
+  max-width: 2000px  !important;
+  margin: auto;
+ padding: 1em;
+ line-height: 20px ; 
+}  
+
+
+
+@header_background_color: #333;
+@header_text_color: #FDFDFD;
+@alternate_row_background_color: #DDD;
+
+@table_width: 2000px;
+@table_body_height: 300px;
+@column_one_width: 200px;
+@column_two_width: 200px;
+@column_three_width: 350px;
+
+.fixed_headers {
+  width: @table_width ! important;
+  font-size: 80%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  
+  th { text-decoration: underline; }
+  th, td {
+    padding: 3px;
+    text-align: center;
+  }
+  
+  /*td:nth-child(1), th:nth-child(1) { min-width: @column_one_width; }
+  td:nth-child(2), th:nth-child(2) { min-width: @column_two_width; }
+  td:nth-child(3), th:nth-child(3) { width: @column_three_width; }*/
+
+  thead {
+    background-color: @header_background_color;
+    color: @header_text_color;
+    tr {
+      display: block;
+      position: relative;
+    }
+  }
+  tbody {
+    display: block;
+    /*overflow: auto;*/
+    overflow-x: visible; //horizontal
+    overflow-y: scroll; //vertical
+    width: 100%;
+    height: @table_body_height;
+    tr:nth-child(even) {
+      background-color: @alternate_row_background_color;
+    }
+  }
+}
+
+.old_ie_wrapper {
+  height: @table_body_height;
+  width: @table_width;
+  overflow-x: hidden;
+  overflow-y: auto;
+  tbody { height: auto; }
+}
+
+.flat-table {
+  display: block;
+  font-family: sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 90%;
+  width: auto;
+  overflow-x: hidden; //horizontal
+  overflow-y: scroll; //vertical
+  
+  th {
+    background-color: rgb(112, 196, 105);
+    position: sticky  !important;
+    top: 0;
+    color: white;
+    font-weight: normal;
+    padding: 20px 30px;
+    text-align: center;
+  }
+  td {
+    background-color: rgb(238, 238, 238);
+    color: rgb(111, 111, 111);
+    padding: 20px 30px;
+  }
+  	}
