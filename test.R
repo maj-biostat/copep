@@ -426,22 +426,21 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 0); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, F),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
                    p_best = c(0.1, 0.2, 0.4, DUMVAL),
                    p_beat_soc = c(0, 0.7, 0.5, DUMVAL),
                    is_sup = rep(F, 4),
-                   is_fut = rep(F, 4),
+                   is_inf = rep(F, 4),
                    var_k = c(0.2, 0.3, 0.3, DUMVAL),
               nk = nk)
 
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 100  # current total number of clusters
                        )
@@ -468,16 +467,15 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k[-4] == a_s$var_k[-4])
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
 
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 100)
  
@@ -486,23 +484,22 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 0); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, F, T, F),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, 10, NA, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, 10, NA, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
                    p_best = c(0.1, DUMVAL, 0.4, DUMVAL),
                    p_beat_soc = c(0, DUMVAL, 0.5, DUMVAL),
                    is_sup = rep(F, 4),
-                   is_fut = c(F, T, F, F),
+                   is_inf = c(F, T, F, F),
                    var_k = c(0.2, DUMVAL, 0.3, DUMVAL),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 100  # current total number of clusters
   )
@@ -529,17 +526,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k[c(1, 3)] == a_s$var_k[c(1, 3)])
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[2]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 3, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[2]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 3, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 100) 
   
@@ -550,23 +546,22 @@ test_decision_intrm <- function(){
   # The comparison is always to SOC so this should not update trial state.
   a_s <- list(K = 4, 
                    active = c(T, T, T, F),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
                    p_best = c(0.1, 0.2, 0.4, DUMVAL),
                    p_beat_soc = c(0, 0.7, 0.5, DUMVAL),
                    is_sup = rep(F, 4),
-                   is_fut = rep(F, 4),
+                   is_inf = rep(F, 4),
                    var_k = c(0.2, 0.3, 0.3, DUMVAL),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 100  # current total number of clusters
   )
@@ -593,18 +588,17 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k[1:3] == a_s$var_k[1:3])
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   # We don't stop if SOC is best arm because of the definition of the stopping rule.
   # The stopping rule tests whether an arm is better than SOC.
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 100) 
   
@@ -615,23 +609,22 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 0); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, F),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
                    p_best = c(0.1, 0.2, 0.4, DUMVAL),
                    p_beat_soc = c(0, 0.7, 0.5, DUMVAL),
                    is_sup = rep(F, 4),
-                   is_fut = rep(F, 4),
+                   is_inf = rep(F, 4),
                    var_k = c(0.2, 0.3, 0.3, DUMVAL),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 100  # current total number of clusters
   )
@@ -661,17 +654,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k[1:3] == a_s$var_k[1:3])
   
   stopifnot(res$arm_status$is_sup == c(F, F, T, F))
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(res$arm_status$eff_at[3] == nk[3])
-  stopifnot(all(is.na(res$arm_status$eff_at[c(1, 2, 4)])))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(res$arm_status$sup_at[3] == nk[3])
+  stopifnot(all(is.na(res$arm_status$sup_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
 
   stopifnot(res$trial_status$stop == T)
-  stopifnot(res$trial_status$win == T)
-  stopifnot(res$trial_status$eff == T)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == T)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == T)
   stopifnot(res$trial_status$nk == 100) 
   
@@ -682,8 +674,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 0); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, F, T, F),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, 10, NA, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, 10, NA, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -691,14 +683,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, DUMVAL, 0.5, DUMVAL),
                    var_k = c(0.2, DUMVAL, 0.3, DUMVAL),
                    is_sup = c(F, F, T, F),
-                   is_fut = c(F, T, F, F),
+                   is_inf = c(F, T, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 100  # current total number of clusters
   )
@@ -728,18 +719,17 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k[c(1, 3)] == a_s$var_k[c(1, 3)])
   
   stopifnot(res$arm_status$is_sup == c(F, F, T, F))
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(res$arm_status$eff_at[3]==nk[3])
-  stopifnot(all(is.na(res$arm_status$eff_at[c(1, 2, 4)])))
-  stopifnot(res$arm_status$fut_at[2]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 3, 4)])))
+  stopifnot(res$arm_status$sup_at[3]==nk[3])
+  stopifnot(all(is.na(res$arm_status$sup_at[c(1, 2, 4)])))
+  stopifnot(res$arm_status$inf_at[2]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 3, 4)])))
 
   stopifnot(res$trial_status$stop == T)
-  stopifnot(res$trial_status$win == T)
-  stopifnot(res$trial_status$eff == T)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == T)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == T)
   stopifnot(res$trial_status$nk == 100)  
   
@@ -750,8 +740,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 0); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, F),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -759,14 +749,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, 0.5, DUMVAL),
                    var_k = c(0.2, 0.2, 0.3, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 100  # current total number of clusters
   )
@@ -796,16 +785,15 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k[1:3] == a_s$var_k[1:3])
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 100)  
   
@@ -815,8 +803,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 0); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, F),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -824,14 +812,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, DUMVAL, DUMVAL),
                    var_k = c(0.2, 0.2, DUMVAL, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 100  # current total number of clusters
   )
@@ -861,17 +848,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k[1:2] == a_s$var_k[1:2])
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 100)
   
@@ -880,25 +866,24 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 0); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, F),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
                    p_best = c(0.1, 0.2, 0.4, DUMVAL),
                    p_beat_soc = c(0, 0.2, 0.5, DUMVAL),
                    var_k = c(0.2, 0.2, 0.3, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = T, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 100  # current total number of clusters
   )
@@ -928,17 +913,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == c(F, T, F, F))
+  stopifnot(res$arm_status$is_inf == c(F, T, F, F))
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[2]==nk[2])
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 3, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[2]==nk[2])
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 3, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 100)
   
@@ -947,8 +931,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 0); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, F),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -956,14 +940,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, DUMVAL, DUMVAL),
                    var_k = c(0.2, 0.2, DUMVAL, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 100  # current total number of clusters
   )
@@ -993,18 +976,17 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == c(F, T, T, F))
+  stopifnot(res$arm_status$is_inf == c(F, T, T, F))
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[2]==nk[2])
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[2]==nk[2])
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 4)])))
 
   stopifnot(res$trial_status$stop == T)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == T)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == T)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 100)
   
@@ -1015,8 +997,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -1024,14 +1006,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, 0, 0),
                    var_k = c(0.2, 0.2, 0, 0),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1062,16 +1043,15 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1080,8 +1060,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -1089,14 +1069,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, 0, DUMVAL),
                    var_k = c(0.2, 0.2, 0, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1129,16 +1108,15 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1148,8 +1126,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -1157,14 +1135,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, DUMVAL, 0),
                    var_k = c(0.2, 0.2, DUMVAL, 0),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1195,17 +1172,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
 
@@ -1214,8 +1190,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -1223,14 +1199,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, DUMVAL, DUMVAL),
                    var_k = c(0.2, 0.2, DUMVAL, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1263,17 +1238,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1282,8 +1256,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -1291,14 +1265,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, 0, 0),
                    var_k = c(0.2, 0.2, 0, 0),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1329,16 +1302,15 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1349,8 +1321,8 @@ test_decision_intrm <- function(){
   # Identical to the above test but with an weaker futility threshold.
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -1358,14 +1330,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, 0, 0),
                    var_k = c(0.2, 0.2, 0, 0),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim 
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1396,17 +1367,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == c(F, T, T, T))
+  stopifnot(res$arm_status$is_inf == c(F, T, T, T))
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[c(2, 3, 4)] == nk[2:4])
-  stopifnot(is.na(res$arm_status$fut_at[1]))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[c(2, 3, 4)] == nk[2:4])
+  stopifnot(is.na(res$arm_status$inf_at[1]))
   
   stopifnot(res$trial_status$stop == T)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == T)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == T)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
 
@@ -1415,8 +1385,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -1424,14 +1394,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, 0, DUMVAL),
                    var_k = c(0.2, 0.2, 0, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1463,16 +1432,15 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1480,8 +1448,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -1489,14 +1457,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, DUMVAL, 0),
                    var_k = c(0.2, 0.2, DUMVAL, 0),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1527,17 +1494,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1546,8 +1512,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -1555,14 +1521,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, DUMVAL, DUMVAL),
                    var_k = c(0.2, 0.2, DUMVAL, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1594,17 +1559,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1612,8 +1576,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -1621,14 +1585,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, 0, 0),
                    var_k = c(0.2, 0.2, 0, 0),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1660,17 +1623,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
 
   stopifnot(res$arm_status$is_sup == c(F, T, F, F))
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
 
-  stopifnot(res$arm_status$eff_at[2]==nk[2])
-  stopifnot(all(is.na(res$arm_status$eff_at[c(1, 3, 4)])))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(res$arm_status$sup_at[2]==nk[2])
+  stopifnot(all(is.na(res$arm_status$sup_at[c(1, 3, 4)])))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   stopifnot(res$trial_status$stop == T)
-  stopifnot(res$trial_status$win == T)
-  stopifnot(res$trial_status$eff == T)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == T)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == T)
   stopifnot(res$trial_status$nk == 140)
 
@@ -1678,8 +1640,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -1687,14 +1649,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0.2, 0, DUMVAL),
                    var_k = c(0.2, 0.2, 0, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1726,17 +1687,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
 
   stopifnot(res$arm_status$is_sup == c(F, F, T, F))
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(res$arm_status$eff_at[3]==nk[3])
-  stopifnot(all(is.na(res$arm_status$eff_at[c(1, 2, 4)])))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(res$arm_status$sup_at[3]==nk[3])
+  stopifnot(all(is.na(res$arm_status$sup_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   stopifnot(res$trial_status$stop == T)
-  stopifnot(res$trial_status$win == T)
-  stopifnot(res$trial_status$eff == T)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == T)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == T)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1746,22 +1706,21 @@ test_decision_intrm <- function(){
   a_s <- list(K = 4, 
                    active = c(T, T, F, T),
                    enabled_for_anly = c(1, 1, 1, 2),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
                    p_best = c(0.1, 0.2, DUMVAL, 0),
                    p_beat_soc = c(0, 0.2, DUMVAL, 0),
                    var_k = c(0.2, 0.2, DUMVAL, 0),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1793,18 +1752,17 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == c(F, T, F, F))
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(res$arm_status$eff_at[2]==nk[2])
-  stopifnot(all(is.na(res$arm_status$eff_at[c(1, 3, 4)])))
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 4)])))
+  stopifnot(res$arm_status$sup_at[2]==nk[2])
+  stopifnot(all(is.na(res$arm_status$sup_at[c(1, 3, 4)])))
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 4)])))
   
   stopifnot(res$trial_status$stop == T)
-  stopifnot(res$trial_status$win == T)
-  stopifnot(res$trial_status$eff == T)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == T)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == T)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1816,8 +1774,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, F, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, 10, NA, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, 10, NA, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -1825,14 +1783,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, DUMVAL, 0, DUMVAL),
                    var_k = c(0.2, DUMVAL, 0, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, T, F, F),
+                   is_inf = c(F, T, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1864,18 +1821,17 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == c(F, F, T, F))
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(res$arm_status$eff_at[3]==nk[3])
-  stopifnot(all(is.na(res$arm_status$eff_at[c(1, 2, 4)])))
-  stopifnot(res$arm_status$fut_at[2]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 3, 4)])))
+  stopifnot(res$arm_status$sup_at[3]==nk[3])
+  stopifnot(all(is.na(res$arm_status$sup_at[c(1, 2, 4)])))
+  stopifnot(res$arm_status$inf_at[2]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 3, 4)])))
   
   stopifnot(res$trial_status$stop == T)
-  stopifnot(res$trial_status$win == T)
-  stopifnot(res$trial_status$eff == T)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == T)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == T)
   stopifnot(res$trial_status$nk == 140)
 
@@ -1883,8 +1839,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -1892,14 +1848,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0, 0, 0),
                    var_k = c(0.2, 0, 0, 0),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1932,16 +1887,15 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
 
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -1950,8 +1904,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -1959,14 +1913,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0, 0, DUMVAL),
                    var_k = c(0.2, 0, 0, DUMVAL),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -1998,16 +1951,15 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(all(is.na(res$arm_status$fut_at)))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(all(is.na(res$arm_status$inf_at)))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -2015,8 +1967,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -2024,14 +1976,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0, DUMVAL, 0),
                    var_k = c(0.2, 0, DUMVAL, 0 ),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -2063,17 +2014,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -2083,8 +2033,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -2092,14 +2042,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0, DUMVAL, DUMVAL),
                    var_k = c(0.2, 0, DUMVAL, DUMVAL ),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -2131,17 +2080,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == a_s$is_fut)
+  stopifnot(res$arm_status$is_inf == a_s$is_inf)
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == F)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -2150,8 +2098,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -2159,14 +2107,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0, 0, 0),
                    var_k = c(0.2, 0, 0, 0 ),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -2198,17 +2145,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == c(F, F, T, F))
+  stopifnot(res$arm_status$is_inf == c(F, F, T, F))
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[3]==nk[3])
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[3]==nk[3])
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -2218,8 +2164,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -2227,14 +2173,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0, 0, DUMVAL),
                    var_k = c(0.2, 0, 0, DUMVAL ),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -2266,17 +2211,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$arm_status$is_sup == a_s$is_sup)
-  stopifnot(res$arm_status$is_fut == c(F, T, F, F))
+  stopifnot(res$arm_status$is_inf == c(F, T, F, F))
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[2]==nk[2])
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 3, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[2]==nk[2])
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 3, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
 
@@ -2285,8 +2229,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, F, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, 10, NA, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, 10, NA, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -2294,14 +2238,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, DUMVAL, 0, DUMVAL),
                    var_k = c(0.2, DUMVAL, 0, DUMVAL ),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, T, F, F),
+                   is_inf = c(F, T, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -2334,18 +2277,17 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$vret$is_sup == a_s$is_sup)
-  stopifnot(res$vret$is_fut == c(F, T, T, F))
+  stopifnot(res$vret$is_inf == c(F, T, T, F))
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[2]==10)
-  stopifnot(res$arm_status$fut_at[3]==nk[3])
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[2]==10)
+  stopifnot(res$arm_status$inf_at[3]==nk[3])
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -2354,8 +2296,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, F),
                    p_rand = rep(0, 4),
@@ -2363,14 +2305,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0, DUMVAL, DUMVAL),
                    var_k = c(0.2, 0, DUMVAL, DUMVAL ),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -2403,18 +2344,17 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$vret$is_sup == a_s$is_sup)
-  stopifnot(res$vret$is_fut == c(F, T, T, F))
+  stopifnot(res$vret$is_inf == c(F, T, T, F))
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[2]==nk[2])
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 4)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[2]==nk[2])
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 4)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -2425,8 +2365,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, T, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = rep(NA, 4),
+                   sup_at = rep(NA, 4),
+                   inf_at = rep(NA, 4),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -2434,14 +2374,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0, 0, 0),
                    var_k = c(0.2, 0, 0, 0 ),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, F, F),
+                   is_inf = c(F, F, F, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -2475,17 +2414,16 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$vret$is_sup == a_s$is_sup)
-  stopifnot(res$vret$is_fut == c(F, F, F, T))
+  stopifnot(res$vret$is_inf == c(F, F, F, T))
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[4]==nk[4])
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2, 3)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[4]==nk[4])
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2, 3)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -2495,8 +2433,8 @@ test_decision_intrm <- function(){
   nk <- c(36,30,34, 40); # sum(nk)
   a_s <- list(K = 4, 
                    active = c(T, T, F, T),
-                   eff_at = rep(NA, 4),
-                   fut_at = c(NA, NA, 10, NA),
+                   sup_at = rep(NA, 4),
+                   inf_at = c(NA, NA, 10, NA),
                    enabled_for_anly = c(1, 1, 1, 2),
                    arms_in_post = c(T, T, T, T),
                    p_rand = rep(0, 4),
@@ -2504,14 +2442,13 @@ test_decision_intrm <- function(){
                    p_beat_soc = c(0, 0, DUMVAL, 0),
                    var_k = c(0.2, 0, DUMVAL, 0 ),
                    is_sup = c(F, F, F, F),
-                   is_fut = c(F, F, T, F),
+                   is_inf = c(F, F, T, F),
               nk = nk)
   
   trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
                        win = F, # won regardless of whether at interim or final
                        eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility - all arms futile
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
                        pb = F,  # picked the best arm
                        nk = 140  # current total number of clusters
   )
@@ -2544,18 +2481,17 @@ test_decision_intrm <- function(){
   stopifnot(res$arm_status$var_k == a_s$var_k)
   
   stopifnot(res$vret$is_sup == a_s$is_sup)
-  stopifnot(res$vret$is_fut == c(F, F, T, T))
+  stopifnot(res$vret$is_inf == c(F, F, T, T))
   
-  stopifnot(all(is.na(res$arm_status$eff_at)))
-  stopifnot(res$arm_status$fut_at[3]==10)
-  stopifnot(res$arm_status$fut_at[4]==nk[4])
-  stopifnot(all(is.na(res$arm_status$fut_at[c(1, 2)])))
+  stopifnot(all(is.na(res$arm_status$sup_at)))
+  stopifnot(res$arm_status$inf_at[3]==10)
+  stopifnot(res$arm_status$inf_at[4]==nk[4])
+  stopifnot(all(is.na(res$arm_status$inf_at[c(1, 2)])))
   
   stopifnot(res$trial_status$stop == F)
-  stopifnot(res$trial_status$win == F)
-  stopifnot(res$trial_status$eff == F)
-  stopifnot(res$trial_status$fut_or_equ == F)
-  stopifnot(res$trial_status$arm == T)
+  
+  stopifnot(res$trial_status$sup == F)
+  stopifnot(res$trial_status$inf_or_equ == F)
   stopifnot(res$trial_status$pb == F)
   stopifnot(res$trial_status$nk == 140)
   
@@ -2660,31 +2596,84 @@ test_prob_min <- function(){
 
 test_prob_lt <- function(){
   
-  message("----> TESTING prob_min")
+  message("----> TESTING prob_lt")
   
   lpost <- post_samples()
   
   message("----> TEST Prob LT SOC when first arm is best")
-  res <- prob_lt(lpost$post3_1_best[, -4])
+  res <- prob_lt(soc = lpost$post3_1_best[, 1], 
+                 m = lpost$post3_1_best[, -c(1, 4)])
   stopifnot(res[1]==0)
   stopifnot(all(res[2:3]>res[1]))  
   
   message("----> TEST Prob LT SOC when last arm is best")
-  res <- prob_lt(lpost$post3_3_best[, -4])
+  res <- prob_lt(soc = lpost$post3_3_best[, 1], 
+                 m = lpost$post3_3_best[, -c(1, 4)])
   stopifnot(res[1]==0)
   stopifnot(all(res[3]>res[1:2]))  
   
   message("----> TEST Prob LT SOC when arm 2 is best")
-  res <- prob_lt(lpost$post4_2_best[, -5])
+  res <- prob_lt(soc = lpost$post4_2_best[, 1], 
+                 m = lpost$post4_2_best[, -c(1, 5)])
   stopifnot(res[1]==0)
   stopifnot(all(res[2]>res[c(1, 3, 4)]))  
 
   message("----> TEST Prob LT SOC for single arm")
-  res <- prob_lt(lpost$post4_2_best[, -c(2, 3, 4, 5)])
-  stopifnot(res == 0)  
-  
+  res <- prob_lt(soc = lpost$post4_2_best[, 1], 
+                 lpost$post4_2_best[, -c(1, 3, 4, 5)])
+  stopifnot(res[1] == 0)  
+  stopifnot(res[2] > 0)
   
   
 }
 
 
+test_compute_decision_probs <- function(){
+  
+  
+  message("----> TESTING compute_decision_probs")
+  
+  lpost <- post_samples()
+
+  message("----> TEST Three arms in post, all active")
+  a_s <- list(arms_in_post = c(T, T, T), 
+              active = c(T, T, T),
+              K = 3)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  stopifnot(all(a_s_test$p_best[1] > a_s_test$p_best[-1]))
+  
+  message("----> TEST Three arms in post, soc and 1 other active")
+  a_s <- list(arms_in_post = c(T, T, T), 
+              active = c(T, F, T),
+              K = 3)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  stopifnot(all(a_s_test$p_best[1] > a_s_test$p_best[-1]))
+  stopifnot(a_s_test$p_beat_soc[2] == DUMVAL)
+  stopifnot(a_s_test$p_equiv_soc[2] == DUMVAL)
+  stopifnot(a_s_test$var_k[2] == DUMVAL)
+  
+  
+  message("----> TEST Three arms in post, only soc active")
+  a_s <- list(arms_in_post = c(T, T, T), 
+              active = c(T, F, F),
+              K = 3)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  stopifnot(all(a_s_test$p_best[1] > a_s_test$p_best[-1]))
+  
+  message("----> TEST Three arms in post, soc inactive, others active")
+  a_s <- list(arms_in_post = c(T, T, T), 
+              active = c(F, T, T),
+              K = 3)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  stopifnot(all(a_s_test$p_beat_soc[2:3] != DUMVAL))
+  
+  message("----> TEST Three arms in post, soc inactive, and 1 other active")
+  a_s <- list(arms_in_post = c(T, T, T), 
+              active = c(F, F, T),
+              K = 3)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  stopifnot(a_s_test$p_beat_soc[2] == DUMVAL & a_s_test$p_beat_soc[3] != DUMVAL)
+  
+  
+}
+  

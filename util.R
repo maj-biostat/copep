@@ -33,12 +33,18 @@ prob_min <- function(m) {
 #'
 #' @return Numeric vector giving probability each column is the maximum
 #' @export
-prob_lt <- function(m) {
+prob_lt <- function(soc, m) {
   if(is.null(dim(m)) & is.vector(m)){
     message(get_hash(), " prob_lt m passed as vector, converting to 1d matrix")
-    dim(m) <- c(length(m), 1)
+    return(c(0, mean(m < soc)))
   }
-  unlist(lapply(1:ncol(m), function(x){mean(m[, 1] > m[, x])}))
+  unlist(lapply(1:(ncol(m)+1), function(x){
+    if(x == 1){
+      0
+    } else{
+      mean(m[, (x-1)] < soc)
+    }
+    }))
 }
 
 #' Probability column is equivalent to SoC
@@ -47,14 +53,71 @@ prob_lt <- function(m) {
 #'
 #' @return Numeric vector giving probability each column is equivalent to SoC
 #' @export
-prob_equiv <- function(m, eq_delta) {
+prob_equiv <- function(soc, m, eq_delta) {
   if(is.null(dim(m)) & is.vector(m)){
     message(get_hash(), " prob_equiv m passed as vector, converting to 1d matrix")
     dim(m) <- c(length(m), 1)
   }
-  unlist(lapply(1:ncol(m), function(x){mean(abs(m[, 1] - m[, x])<eq_delta)}))
+  unlist(lapply(1:(ncol(m)+1), function(x){
+
+    if(x == 1){
+      1
+    } else{
+      mean(abs(soc - m[, (x-1)]) < eq_delta)
+    }
+    
+    }))
 }
 
+#' Calculate matrix of pairwise differences of MC draws
+#'
+#' @param mat The matrix of draws
+#' @param trans A transformation function, default is identity \code{I()}.
+#' @return A matrix of pairwise differences
+#' @export
+#' @importFrom utils combn
+pairwise_diff <- function(mat, trans = I) {
+  trans <- match.fun(trans)
+  pair_comp <- combn(ncol(mat), 2)
+  trans_mat <- trans(mat)
+  pair_mat <- apply(pair_comp, 2, function(x) trans_mat[,x[1]] - trans_mat[,x[2]])
+  colnames(pair_mat) <- apply(pair_comp, 2, paste, collapse = "-")
+  return(pair_mat)
+}
+
+
+#' Make a pairwise comparison between parameter draws
+#'
+#' @param mat Matrix of parameter draws
+#' @param eps Reference value, default is \code{0}.
+#' @return Vector of probabilities that pairwise difference is greater than \code{eps}.
+#' @export
+pairwise_comp <- function(mat, eps = 0) {
+  pmat <- pairwise_diff(mat)
+  apply(pmat, 2, function(x) mean(x > eps))
+}
+
+#' Bayesian response adaptive randomisation
+#'
+#' @param pbest Probability arm is best
+#' @param sampsize Current sample size allocated to arm
+#' @param variance Current posterior variance
+#' @param inactive Flag for if an arm should receive zero allocations
+#' @param fix_ctrl Fix allocation to control by this amount
+#'
+#' @return A numeric vector giving the BRAR allocation probabilities
+#' @export
+brar <- function(pbest, sampsize, variance, inactive) {
+  stopifnot(all(pbest >= 0))
+  stopifnot(all(sampsize > 0))
+  m <- length(pbest)
+  r <- sqrt(pbest * variance / sampsize)
+  r[inactive] <- 0
+  w <- r / sum(r)
+  
+  return(w)
+ 
+}
 
 
 
@@ -155,6 +218,36 @@ jags_setup <- function(){
 }
 
 
+jags_setup2 <- function(){
+  
+  fileForJAGS <- "BayesJAGSModel.txt"
+  cat("model {
+  for (i in 1:nsoc){
+    y0[i] ~ dbin (p.bound[i], 1)
+    p.bound[i] <- max(0, min(1, p[i]))
+    logit(p[i]) <- b.soc + sigu*b.u[clust[i]]
+  }
+  for (i in 1:ntrt){
+    y[i] ~ dbin (p.bound[i], 1)
+    p.bound[i] <- max(0, min(1, p[i]))
+    logit(p[i]) <- b.soc + b.trt[arm[i]] + sigu*b.u[clust[i]]
+  }
+  
+  b.soc ~ dnorm(-1.7, tau.soc)
+  for (j in 1:n.trt) {b.trt[j] ~ dnorm(0, tau.arm)}
+  for (j in 1:n.clust) {b.u[j] ~ dnorm(0, 1)}
+  
+  # Precision (inverse gamma on sig)
+  tau.soc ~ dgamma(1,1)
+  tau.arm ~ dgamma(2,2)
+  tau.clust ~ dgamma(1,1)
+  
+  sigu  <- pow(tau.clust, -0.5)
+  
+}", file= fileForJAGS)
+  
+}
+
 
 #' Gets SD for a given icc assuming residual variance of (pi^2)/3
 #' for the RE logistic model.
@@ -211,6 +304,10 @@ cfg <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   # Utility approach
   lpar <- list()
   
+  lpar$save_all <- F
+  
+  lpar$stanmodel <- 9 # alternatively use 5
+  
   lpar$outdir <- outdir
   lpar$trial_interface <- trial_interface
   lpar$nsim <- nsim
@@ -231,12 +328,12 @@ cfg <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   lpar$interim_at <- 40
   
   # Cluster size
-  lpar$mu_n_household <- 3
+  lpar$mu_n_household <- 1
   
   # implies minimum household of 1 other person
   # index cases with no other household members ineligible?
   lpar$min_clust_size_1 <- 0
-  lpar$max_clust_size_1 <- 8
+  lpar$max_clust_size_1 <- 3
   
   # Also defines ordering of trt.
   lpar$trt_name <- c("pbo", "drg")
@@ -248,12 +345,12 @@ cfg <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   # SD for cluster random effect
   lpar$sig_u0 <- 0.2
   
-  lpar$test_at_day <- 11
+  lpar$test_at_day <- 10
   
   # Decision thresholds
   lpar$thresh_sup <- 0.975
   lpar$thresh_fut <- 0.15
-  lpar$thresh_equ <- 0.925
+  lpar$thresh_equ <- 0.92
   # this is on the log-odds scale
   lpar$eq_delta <- 0.45
   
@@ -298,112 +395,112 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   sig_u0_2 <- get_sd_for_icc(0.02)
   
   lpar$scenarios[[1]] <- list(scen = "1-0", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400) # implies not to do interims
   
   lpar$scenarios[[2]] <- list(scen = "1-1", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400)
   
   lpar$scenarios[[3]] <- list(scen = "1-2", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400)
   
   lpar$scenarios[[4]] <- list(scen = "1-3", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.125),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400)
   
   lpar$scenarios[[5]] <- list(scen = "1-4", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400)
   
   lpar$scenarios[[6]] <- list(scen = "2-0", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400)
   
   lpar$scenarios[[7]] <- list(scen = "2-1", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400)
   
   lpar$scenarios[[8]] <- list(scen = "2-2", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400)
   
   lpar$scenarios[[9]] <- list(scen = "2-3", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp =  c(0.15, 0.1, 0.125),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400)
   
   lpar$scenarios[[10]] <- list(scen = "2-4", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1),
                               arms_activ_at_start = c(T, T, T),
                               arms_enabled_for_anly = c(1, 1, 1),
-                              thresh_sup = 0.93,
+                              thresh_sup = 0.95,
                               arms_start_idx=8,
                               interim_at = 400)
   
@@ -422,7 +519,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   sig_u0_2 <- get_sd_for_icc(0.1)
   
   lpar$scenarios[[1]] <- list(scen = "1-0", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15, 0.15),
@@ -433,7 +530,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
 
   
   lpar$scenarios[[2]] <- list(scen = "1-1", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15, 0.15),
@@ -443,7 +540,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[3]] <- list(scen = "1-2", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15, 0.15),
@@ -453,7 +550,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[4]] <- list(scen = "1-3", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.125, 0.11),
@@ -463,7 +560,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[5]] <- list(scen = "1-4", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1, 0.085),
@@ -473,7 +570,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[6]] <- list(scen = "2-0", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15, 0.15),
@@ -483,7 +580,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[7]] <- list(scen = "2-1", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15, 0.15),
@@ -493,7 +590,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[8]] <- list(scen = "2-2", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15, 0.15),
@@ -503,7 +600,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[9]] <- list(scen = "2-3", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp =  c(0.15, 0.1, 0.125, 0.11),
@@ -513,7 +610,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[10]] <- list(scen = "2-4", 
-                              Nc = 400, 
+                              Nc = 450, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1, 0.085),
@@ -538,40 +635,40 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   sig_u0_2 <- get_sd_for_icc(0.1)
   
   lpar$scenarios[[1]] <- list(scen = "1-0", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15),
                               arms_start_idx = 8,
                               interim_at = 20) # implies not to do interims
   
   lpar$scenarios[[2]] <- list(scen = "1-1", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15),
                               arms_start_idx = 8,
                               interim_at = 20)
   
   lpar$scenarios[[3]] <- list(scen = "1-2", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15),
                               arms_start_idx = 8,
                               interim_at = 20)
   
   lpar$scenarios[[4]] <- list(scen = "1-3", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.125),
                               arms_start_idx = 8,
                               interim_at = 20)
   
   lpar$scenarios[[5]] <- list(scen = "1-4", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1),
                               arms_start_idx = 8,
@@ -580,40 +677,40 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   # Different ICC
   
   lpar$scenarios[[6]] <- list(scen = "2-0", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.15, 0.15),
                               arms_start_idx = 8,
                               interim_at = 20) # implies not to do interims
   
   lpar$scenarios[[7]] <- list(scen = "2-1", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.1, 0.15),
                               arms_start_idx = 8,
                               interim_at = 20)
   
   lpar$scenarios[[8]] <- list(scen = "2-2", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.085, 0.15),
                               arms_start_idx = 8,
                               interim_at = 20)
   
   lpar$scenarios[[9]] <- list(scen = "2-3", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.1, 0.125),
                               arms_start_idx = 8,
                               interim_at = 20)
   
   lpar$scenarios[[10]] <- list(scen = "2-4", 
-                              Nc = 400, 
-                              mu_n_household = 3, 
+                              Nc = 450, 
+                              mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.1, 0.1),
                               arms_start_idx = 8,

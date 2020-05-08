@@ -7,16 +7,16 @@
 #' @export
 #'
 #' @examples
-trial_Fixed_BR <- function(d, arm_status, lpar, x){
+trial_Fixed_BR <- function(scen = NA, d, arm_status, lpar, x){
   
   set_hash()
   
-  message(get_hash(), " trial_Fixed_BR, starting with dataset number ", x)
+  message(get_hash(), " trial_Fixed_BR, starting scenario ", scen, " with dataset number ", x)
   
-  trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
-                       win = F, # won regardless of whether at interim or final
-                       eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility/equivalence - all arms futile/equivalent
+  trial_status <- list(scen = scen,
+                       stop = F,# trial should stop (for eff, fut, equiv) determined at interim
+                       sup = F, # stopped trial at interim since found superior treatment
+                       inf_or_equ = F, # stopped trial at interim for futility/equivalence - all arms futile/equivalent
                        arm = F, # stopped an arm for fut (not necessarily stopping the trial)
                        pb = F,  # picked the best arm
                        fa = F,  # ran all the way to the final analysis
@@ -48,7 +48,7 @@ trial_Fixed_BR <- function(d, arm_status, lpar, x){
   
   message(get_hash(), " trial_Fixed_BR, modelling final ")
   
-  post <- glmm_jags(d)
+  post <- glmm_stan(d, lpar)
   
   
   # tpost <- post[, 1:3]
@@ -247,15 +247,23 @@ intrm_GS <- function(dint, a_s, t_s, lpar){
   # Only those that have hit the endpoint are included in the analysis.
   tbl <- table(dint$arm)
   
-  message(get_hash(), " interim data on arms ", 
-          paste0(names(tbl), collapse = " "), " with ",
-          paste0(as.numeric(tbl), collapse = " "), " with ",
-          nrow(dint), " recs in dataset and max entry time ",
+  message(get_hash(), " all data on arms ", 
+          paste0(names(tbl), collapse = " "), ": ",
+          paste0(as.numeric(tbl), collapse = "+"), " = ",
+          nrow(dint), " recs, max entry time ",
           max(dint$entry_time, na.rm = T), " days")
   
-  dtmp <- dint %>% dplyr::group_by(arm) %>% dplyr::summarise(nk = length(unique(clustid)))
+  # Number of clusters by arm
+  dtmp <- dint %>% 
+    dplyr::group_by(arm) %>% 
+    dplyr::summarise(nk = length(unique(clustid)),
+                     nki = n()) %>%
+    dplyr::ungroup()
+ 
   a_s$nk[dtmp$arm] <- dtmp$nk
+  a_s$nki[dtmp$arm] <- dtmp$nki
   
+  # We do not observe all of the data because not everyone reaches their endpoint
   dobs <- dint %>% 
     dplyr::mutate(maxentry = max(entry_time)) %>%
     dplyr::filter(entry_time <= maxentry - (lpar$test_at_day)) %>%
@@ -263,16 +271,28 @@ intrm_GS <- function(dint, a_s, t_s, lpar){
   
   tbl <- table(dobs$arm)
   
-  message(get_hash(), " observed data on arms ", 
-          paste0(names(tbl), collapse = " "), " with ",
-          paste0(as.numeric(tbl), collapse = " "), " with ",
-          nrow(dobs), " recs in dataset and max entry time ",
+  message(get_hash(), " obs data on arms ", 
+          paste0(names(tbl), collapse = " "), ": ",
+          paste0(as.numeric(tbl), collapse = "+"), " = ",
+          nrow(dobs), " recs, max entry time ",
           max(dobs$entry_time, na.rm = T), " days (fu is " , lpar$test_at_day, " days).")
   
-
-  post <- glmm_jags(dobs)
+  # Compute weighted empirical proportion
+  dclu <- dobs %>%
+    dplyr::group_by(arm, clustid) %>%
+    dplyr::summarise(n = n(),
+                     p = sum(y)/n()) %>%
+    dplyr::ungroup() %>%
+    dplyr::group_by(arm) %>%
+    dplyr::summarise(p = sum(n * p)/sum(n)) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(arm)
   
-  decis <- decision_intrm(post, a_s, t_s, lpar)
+  a_s$p_emp[dclu$arm] <- dclu$p
+  
+  post <- glmm_stan(dobs, lpar)
+  
+  decis <- decision(post, a_s, t_s, lpar)
 
   return(list(post = post, 
               decis = decis))
@@ -293,25 +313,25 @@ intrm_GS <- function(dint, a_s, t_s, lpar){
 #' @export
 #'
 #' @examples
-trial_GS_RAR <- function(d, arm_status, lpar, x){
+trial_GS_RAR <- function(scen = NA, d, arm_status, lpar, x){
   
   set_hash()
   
-  message(get_hash(), " trial_GS_RAR, starting trial ", x)
-
+  message(get_hash(), " trial_GS_RAR, starting scenario ", scen, " with dataset number ", x)
   
-  trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
-                       win = F, # won regardless of whether at interim or final
-                       eff = F, # stopped trial at interim since found effective treatment
-                       fut_or_equ = F, # stopped trial at interim for futility/equivalence - all arms futile/equivalent
-                       arm = F, # stopped an arm for fut (not necessarily stopping the trial)
+  trial_status <- list(scen = scen, 
+                       stop = NA,# trial should stop (for sup, inf, equiv) determined at interim
+                       sup = NA, # stopped trial at interim since found superiori treatment
+                       inf_or_equ = NA, # stopped trial at interim for futility/equivalence - all arms futile/equivalent
+                       no_decision = NA,
                        pb = F,  # picked the best arm
                        fa = F,  # ran all the way to the final analysis
                        na = 0,  # current analysis number
                        nk = 0,  # current total number of clusters
                        nki = 0, # current total number of participants 
                        durn = 0)# elapsed duration of trial  
-  
+
+  figdat <- list()
   
   # Interim analyses
   if(length(lpar$nclustanalys) > 0){
@@ -319,9 +339,10 @@ trial_GS_RAR <- function(d, arm_status, lpar, x){
     i=1
     for(i in 1:length(lpar$nclustanalys)){
       
+      # i = i + 1
       # allocate to arms, run interim and break if we triggered a stopping rule
       # Note - balanced allocation for first interim
-      message(get_hash(), " trial_GS_RAR, starting interim ", i, 
+      message(get_hash(), "   STARTING INTERIM ", i, 
               " p_rand ", 
               paste0(round(arm_status$p_rand, 3), collapse = " "))
       
@@ -374,9 +395,13 @@ trial_GS_RAR <- function(d, arm_status, lpar, x){
       arm_status <- tmp$decis$arm_status
       trial_status <- tmp$decis$trial_status
       
+      if(lpar$save_all){
+        figdat[[i]] <- list(post = post, a_s = arm_status, t_s = trial_status)
+      }
+      
       
       # if any stop then break
-      if(trial_status$stop){
+      if(!is.na(trial_status$stop) & trial_status$stop == T){
         
         message(get_hash(), " Triggered interim stopping rule!")
         break
@@ -391,9 +416,9 @@ trial_GS_RAR <- function(d, arm_status, lpar, x){
   
   # Final analysis
   # This only occurs if we did not stop at an interim
-  if(!trial_status$stop){
+  if(is.na(trial_status$stop)){
 
-    message(get_hash(), " trial_GS_RAR, starting final interims ended at ", 
+    message(get_hash(), "   STARTED FINAL, the interims ended at nclust ", 
             lpar$nclustanalys[i], " max ss ", lpar$Nmax)
  
     tmp <- RAR_alloc(clustid = d$clustid, 
@@ -415,21 +440,42 @@ trial_GS_RAR <- function(d, arm_status, lpar, x){
     trial_status$nk <- d$clustid[nrow(d)]
     trial_status$durn <- d$entry_time[nrow(d)]
     
-    message(get_hash(), " trial_GS_RAR, modelling final ")
+    message(get_hash(), " modelling final ")
     
-    post <- glmm_jags(d)
+    post <- glmm_stan(d, lpar)
     
-    decis <- decision_fa(post, 
+    tmp <- decision(post, 
                          a_s = arm_status, 
                          t_s = trial_status, 
                          lpar)
 
-    trial_status <- decis$trial_status
-    arm_status <- decis$arm_status
+    trial_status <- tmp$trial_status
+    arm_status <- tmp$arm_status
+    
+    
+    if(is.na(trial_status$sup) & is.na(trial_status$inf_or_equ)){
+      message(get_hash(), " no decision made during trial")
+      trial_status$no_decision <- T
+    }
+    
+    if(lpar$save_all){
+      figdat[[length(figdat)+1]] <- list(post = post, a_s = arm_status, t_s = trial_status)
+    }
 
   }
   
+
  
+  if(lpar$save_all){
+    message(get_hash(), " saving figure data.")
+    figdat$d <- d
+    figdat$lpar <- lpar
+    saveRDS(figdat, paste0("fig/", get_hash(), ".RDS"))
+  }
+  
+  
+  message(get_hash(), " trial_GS_RAR, finished all analyses")
+  
   # It is quite valid for fa to be of zero length - i.e. if we stopped at 
   # an interim analysis we would not undertake a final analysis.
   lret <- list(post = post,

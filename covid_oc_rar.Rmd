@@ -1,0 +1,503 @@
+---
+title: "COPEP - COVID19 cluster RCT simulations"
+author: "Mark Jones"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    css: "rep.css"
+    fig_caption: yes
+classoption: landscape  
+bibliography: [book.bib]
+biblio-style: apalike  
+---
+
+
+<!--
+
+  
+
+output: distill::distill_article
+-->
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+suppressPackageStartupMessages(
+  suppressWarnings(library(tidyverse)))
+suppressPackageStartupMessages(
+  suppressWarnings(library(gridExtra)))
+suppressPackageStartupMessages(
+  suppressWarnings(library(latex2exp)))
+suppressPackageStartupMessages(
+  suppressWarnings(library(kableExtra)))
+suppressPackageStartupMessages(
+  suppressWarnings(library(gridExtra)))
+suppressPackageStartupMessages(
+  suppressWarnings(library(flextable)))
+
+source("report.R")
+source("decision.R")
+
+options(knitr.kable.NA = '') 
+
+dirc = "outrar"
+
+```
+
+
+
+```{r, echo = F}
+
+include_rar4 <- T
+include_extra <- F
+
+ld1 <- get_results(dirc = "outrar")
+
+ld1$dtrial <- ld1$dtrial %>%
+  dplyr::rename(eff = sup,
+                 ineff = inf_or_equ)
+
+darm1 <- ld1$darm %>% 
+  dplyr::select(-arms_in_post) %>%
+  dplyr::group_by(scen, arm, enabled_for_anly, p_tru) %>%
+  dplyr::summarise(p_est = mean(p_est, na.rm = T),
+                   p_sd = sqrt(mean(p_var, na.rm = T)),
+                   active = mean(active, na.rm = T),
+                   sup_at = mean(sup_at, na.rm = T),
+                   inf_at = mean(inf_at, na.rm = T), 
+                   equ_at = mean(equ_at, na.rm = T), 
+                   is_best = mean(is_best, na.rm = T),
+                   is_eff = mean(is_sup, na.rm = T),
+                   is_inf = mean(is_inf, na.rm = T),
+                   is_equ = mean(is_equ, na.rm = T),
+                   nk = mean(nk, na.rm = T),
+                   nki = mean(nki, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  dplyr::rename(eff_at = sup_at,
+                ineff_at = inf_at,
+                is_ineff = is_inf,
+                enabled_from = enabled_for_anly) %>%
+  dplyr::mutate(enabled_from = enabled_from - 1)
+
+# flextable doesn't like nan
+darm1$eff_at[is.nan(darm1$eff_at)] <- NA
+darm1$ineff_at[is.nan(darm1$ineff_at)] <- NA
+darm1$equ_at[is.nan(darm1$equ_at)] <- NA
+
+if(include_rar4){
+  ld2 <- get_results(dirc = "outrar4")
+  
+  ld2$dtrial <- ld2$dtrial %>%
+  dplyr::rename(eff = sup,
+                 ineff = inf_or_equ)
+
+  darm2 <- ld2$darm %>% 
+    dplyr::select(-arms_in_post) %>%
+    dplyr::group_by(scen, arm, enabled_for_anly, p_tru) %>%
+    dplyr::summarise(p_est = mean(p_est, na.rm = T),
+                   p_sd = sqrt(mean(p_var, na.rm = T)),
+                   active = mean(active, na.rm = T),
+                   sup_at = mean(sup_at, na.rm = T),
+                   inf_at = mean(inf_at, na.rm = T), 
+                   equ_at = mean(equ_at, na.rm = T), 
+                   is_best = mean(is_best, na.rm = T),
+                   is_eff = mean(is_sup, na.rm = T),
+                   is_inf = mean(is_inf, na.rm = T),
+                   is_equ = mean(is_equ, na.rm = T),
+                   nk = mean(nk, na.rm = T),
+                   nki = mean(nki, na.rm = T)) %>%
+  dplyr::ungroup() %>%
+  dplyr::rename(eff_at = sup_at,
+                ineff_at = inf_at,
+                is_ineff = is_inf,
+                enabled_from = enabled_for_anly) %>%
+  dplyr::mutate(enabled_from = enabled_from - 1)
+  
+  # flextable doesn't like nan
+  
+  darm2$eff_at[is.nan(darm2$eff_at)] <- NA
+  darm2$ineff_at[is.nan(darm2$ineff_at)] <- NA
+  darm2$equ_at[is.nan(darm2$equ_at)] <- NA
+}
+
+
+# ld3 <- get_results(dirc = "outfix")
+# 
+# darm3 <- ld3$darm %>% 
+#   dplyr::select(-arms_in_post) %>%
+#   dplyr::group_by(scen, arm, enabled_for_anly, p_tru) %>%
+#   dplyr::summarise(p_est = mean(p_est, na.rm = T),
+#                    p_sd = sqrt(mean(p_var, na.rm = T)),
+#                    active = mean(active, na.rm = T),
+#                    sup_at = mean(sup_at, na.rm = T),
+#                    inf_at = mean(inf_at, na.rm = T), 
+#                    equ_at = mean(equ_at, na.rm = T), 
+#                    p_beat_soc = mean(p_beat_soc, na.rm = T),
+#                    p_equ_soc = mean(p_equiv_soc, na.rm = T),
+#                    is_best = mean(is_best, na.rm = T),
+#                    is_eff = mean(is_sup, na.rm = T),
+#                    is_inf = mean(is_inf, na.rm = T),
+#                    is_equ = mean(is_equ, na.rm = T),
+#                    nk = mean(nk, na.rm = T)) %>%
+#   dplyr::ungroup()
+
+# flextable doesn't like nan
+# darm3$sup_at[is.nan(darm3$sup_at)] <- NA
+# darm3$inf_at[is.nan(darm3$inf_at)] <- NA
+# darm3$equ_at[is.nan(darm3$equ_at)] <- NA
+
+if(include_extra){
+  ld4 <- get_results(dirc = "outfix4")
+
+  darm4 <- ld4$darm %>% 
+    dplyr::select(-arms_in_post) %>%
+    dplyr::group_by(scen, arm, enabled_for_anly, p_tru) %>%
+    dplyr::summarise(p_est = mean(p_est, na.rm = T),
+                   p_sd = sqrt(mean(p_var, na.rm = T)),
+                   active = mean(active, na.rm = T),
+                   sup_at = mean(sup_at, na.rm = T),
+                   inf_at = mean(inf_at, na.rm = T), 
+                   equ_at = mean(equ_at, na.rm = T), 
+                   p_beat_soc = mean(p_beat_soc, na.rm = T),
+                   p_equ_soc = mean(p_equiv_soc, na.rm = T),
+                   is_best = mean(is_best, na.rm = T),
+                   is_eff = mean(is_sup, na.rm = T),
+                   is_inf = mean(is_inf, na.rm = T),
+                   is_equ = mean(is_equ, na.rm = T),
+                   nk = mean(nk, na.rm = T)) %>%
+  dplyr::ungroup()
+  
+  # flextable doesn't like nan
+  darm4$sup_at[is.nan(darm4$sup_at)] <- NA
+  darm4$inf_at[is.nan(darm4$inf_at)] <- NA
+  darm4$equ_at[is.nan(darm4$equ_at)] <- NA
+}
+
+
+
+```
+
+
+## Trial context
+
+Investigating the prophylactic benefit of chemoprevention for post-exposure to an index-case patient who has confirmed COVID-19 disease. 
+Evaluating preventative/prophylactic measures in an attempt to reduce the spread of COVID-19 and/or reduce symptom severity in participants who become infected from contact with an index-case patient.
+
+Arms:
+
+1. SOC
+2. Hydroxychloroquine
+3. Interferon
+
+With more arms possibly introduced over time.
+
+## Overview
+
+The design is an adaptive cluster RCT. 
+Close contacts, which at the moment is just eligible household members, that are associated with an index case are identified and define to be a cluster (the index case is not considered part of the cluster).
+Each cluster is randomised to a treatment arm or SOC.
+At the time of writing, the Australian pandemic status has low numbers of daily cases and there are some restrictions that limit social mixing. 
+In such a setting, we anticipate cluster sizes to small; smaller than ideal.
+Nevertheless, our simulations have assumed small cluster sizes and so our evaluation of operating characteristics is conservative. 
+Should societal restrictions be eased, which they probably will be, we anticipate that what might reasonably considered to be a cluster of close-contacts could increase in size.
+Of course, this is assuming we are able to adequately trace all the contacts in a cluster.
+
+Adaptive elements to the design include response adaptive allocation (RAR), the ability to add new arms, sequential analysis and pre-specified decisions for how effective, ineffective and equivalent treatments impact the status of the trial.
+
+The primary endpoint is confirmed SARS-CoV-2 detection from any PCR specimen at day 10 after randomisation (i.e. a binary variable), but for the sake of brevity, we will just use *infected* as representative of an event.
+In our evaluation of infections, we consider all members of the cluster regardless of what their (likely unknown) infection status was at the time of entry into the trial.
+
+When conducting an interim analysis, we note that some participants in the data available at the time of the interim will be enrolled, but will not have reached their endpoint. 
+Currently, we do not impute these data but rather analyse only the observed data points.
+Finally, treatments are evaluated independently, i.e. interaction effects are not currently considered.
+
+We assume that three arms are active at the start of the trial (and for these simulations).
+However, the trial can be extended up to any number of arms, subject to the limits of operational practicality and funding.
+RAR is enabled following a burn in period of equal allocation to each arm.
+
+The model used for all analyses is a logistic regression with varying intercept for each cluster and parameterised with terms for the intercept and treatment effects associated with each arm.
+The model gives estimates for the log-odds of infection and log-odds-ratios for treatment effects.
+
+All comparisons are made solely relative to the SOC until a treatment arm is deemed effective. 
+We use the term *effective* to mean there is evidence to strongly suggest that an arm under consideration is better than a comparator arm, typically the SOC.
+So *effective* basically has the same semantics of how *superior* would be used in a frequentist trial. 
+
+We make the distinction because the concept of *superiority* has an implicit symmetry with *inferiority*.
+That is, if arm 1 is *superior* to arm 2, then by definition, arm 2 is *inferior* to arm 1.
+By defining and referring to the concept of *effectiveness*, we de-emphasise binary thinking and talk about and make decisions based more broadly on the strength of evidence available and our level of acceptable risk for making a false decision. 
+For example, we might determine a treatment to be *effective* beyond our levels of doubt if there is greater than 0.95 probability that it is less than a comparator. 
+Moreover, we might determine a treatment to have a low chance of *effeciveness* and not warrant further exploration, if there is less than 0.2 probability that it is less than a comparator.
+Purely for convenience we will refer to such an arm as being *ineffective* and refrain from using the term *inferior* unless the above mentioned symmetry holds.
+
+Another term that we use is *equivalence* which is defined as in terms of the probability mass of the distribution of the difference between the infection rate for any two arm being within a given pre-specified margin.
+In lay terms, *equivalence* literally aligns with the common conception of two treatments having the same observed infection response.
+
+The use of the term *futile* in relation to a treatment arm is reserved purely for those cases where the posterior predictive distribution is examined.
+As we do not use predictive probabilities in the copep trial, we do not use the term *futile* as a designation of treatment status.
+
+If a treatment arm is deemed effective, we test whether the remaining treatment arms are inferior to the effective arm and deactivate those that prove to be so.
+The rationale for doing this is that we consider it unethical to allocate patients to treatments that are inferior to those that have evidence of effectiveness.
+Otherwise, we continue with the trial, collecting evidence to make subsequent decisions on the remaining arms.
+As the SOC is implicitly inferior to an effective arm, we stop allocation to SOC, but continue to make comparisons relative to the SOC.
+We suspend the trial only if there are no further comparisons to be made, i.e. we have reached a conclusion on all arms.
+Sometimes a trial will not stop at any of the interim analyses in which case the trial would run to its maximum sample size and then proceed to a final analysis.
+
+As noted, at each interim we fit a GLMM (a logistic regression model with random intercept to account for clustering) and use the joint posterior to determine several probability metrics for making decisions. 
+Letting $\theta_k$ be the estimated log-odds of positive PCR results at day 10 and letting $k=1$ represent the SOC arm, we compute:
+
++ the probability of an arm being better than control; $Pr(\theta_k < \theta_{1})$ $\forall \ k > 1$
++ the probability of an arm being best; $Pr(\theta_k > \theta_j)$ $\forall \ k \ne j$
++ the probability that each treatment arm is equivalent to SOC; $Pr(|\theta_1 - \theta_j|<\delta)$ $j > 1$ 
++ the probability that each remaining active arms is inferior to arms determined to be effective; $Pr(\theta_a > \theta_{eff})$ $\forall \ a$ active arms
+
+Then we compare these values to predetermined decision thresholds and update the trial and arm status accordingly.  
+
+## Simulations
+
+The three-arm scenarios we considere:
+
++ Null case (suffix "-0") `p_tru` = (0.15, 0.15, 0.15)
++ One effective (suffix "-1") `p_tru` = (0.15, 0.1, 0.15)
++ One very effective (suffix "-2") `p_tru` = (0.15, 0.085, 0.15)
++ Two effective with gradient (suffix "-3") `p_tru` = (0.15, 0.1, 0.125)
++ Two effective equivalent (suffix "-4") `p_tru` = (0.15, 0.1, 0.1)
+
+The four-arm scenarios (with the fourth arm entering at the first interim) we consider:
+
++ Null case (suffix "-0") `p_tru` = (0.15, 0.15, 0.15, 0.15)
++ One effective (suffix "-1") `p_tru` = (0.15, 0.1, 0.15, 0.15)
++ One very effective (suffix "-2") `p_tru` = (0.15, 0.085, 0.15, 0.15)
++ Three effective with gradient (suffix "-3") `p_tru` = (0.15, 0.1, 0.125, 0.11)
++ Three effective with one very effective (suffix "-4") `p_tru` = (0.15, 0.1, 0.1, 0.085)
+
+## Results
+
+### Commentary and points of note
+
+
+
+### Trial-level summaries
+
+Trial level characteristics table headings:
+
++ `scen` - simulation scenario (see above)
++ `nmax` - maximum number of clusters
++ `nint` - maximum number of interim analyses
++ `intat` - interval between interim analyses
++ `sig` - standard deviation used to generate the random effect
++ `thresh_sup` - probability threshold to declare effective arm
++ `thresh_fut` - probability threshold to declare futile arm
++ `thresh_equ` - probability threshold to declare equivalent arm within +/- 0.5 log-odds
++ `stop` - proportion of trials stopped for effectiveness, futility or equivalence (all arms futile/equiv)
++ `eff` - proportion of trials where effective arm identified
++ `ineff` - proportion of trials deemed ineffective (translates to either ineffective or equivalent)
++ `no_decision` - proportion of trials where neither of the above conclusions were reached
++ `pb` - proportion of trials where best arm identified based on probability of being best
++ `fa` - proportion of trials running all the way to the final analysis
++ `na` - expected number of interim analyses
++ `nk` - expected total number of clusters
++ `nki` - expected total number of participants
++ `durn` - expected duration in days
++ `nsim` - number of simulations of trial specification
++ `muc` - expected cluster size
+
+
+```{r, echo = F}
+gen_trial_table <- function(dtmp){
+  
+  shade_cols <- names(dtmp)[-1]
+
+  shade_rows <- seq(1, nrow(dtmp), by = 2)
+  
+  myft <- flextable(dtmp) 
+  myft <- theme_vanilla(myft)
+  
+  myft <- colformat_num(x = myft, 
+                        j = c("thresh_sup", "thresh_fut", "thresh_equ", "sig", 
+                              "stop", "eff", "ineff", "no_decision", "pb", "fa"),
+                        big.mark=",", 
+                        digits = 3, 
+                        na_str = "")
+  
+  myft <- colformat_num(x = myft, 
+                        j = c("muc"),
+                        big.mark=",", 
+                        digits = 2, 
+                        na_str = "")
+  
+  myft <- colformat_num(x = myft, 
+                        j = c("na", "nk", "nki", "durn"),
+                        big.mark=",", 
+                        digits = 1, 
+                        na_str = "")
+  myft <- bg(x = myft, 
+             i = shade_rows,
+             j = shade_cols,
+             bg = "#e0e0e0")
+  myft <- autofit(myft)
+  
+  myft
+  
+}
+
+```
+
+
+#### Response adaptive randomisation (3 Arm)
+
+<div style="margin-bottom:50px;">
+```{r, layout="l-screen-inset", echo = F, include = T, eval = T}
+dtmp <- ld1$dtrial %>% dplyr::select(-fname) 
+
+myft <- gen_trial_table(dtmp)
+myft <- set_caption(myft, "Summary operating characteristics for 3 arm RAR design")
+
+myft
+```
+</div>
+
+
+
+
+#### Response adaptive randomisation (4 arm)
+
+<div style="margin-bottom:50px;">
+```{r, layout="l-body-outset", echo = F, include = include_rar4, eval = include_rar4}
+dtmp <- ld2$dtrial %>% dplyr::select(-fname) 
+
+myft <- gen_trial_table(dtmp)
+myft <- set_caption(myft, "Summary operating characteristics for 4 arm RAR design")
+
+myft
+```
+</div>
+
+#### Fixed size 3 arm trial
+
+<div style="margin-bottom:50px;">
+```{r, echo = F, include = F, eval = F}
+dtmp <- ld3$dtrial %>% dplyr::select(-fname) 
+
+myft <- gen_trial_table(dtmp)
+myft <- set_caption(myft, "Summary operating characteristics for 3 arm fixed size design")
+
+myft
+```
+</div>
+
+#### Fixed size 4 arm trial
+
+<div style="margin-bottom:50px;">
+```{r, echo = F, include = include_extra, eval = include_extra}
+dtmp <- ld4$dtrial %>% dplyr::select(-fname) 
+myft <- gen_trial_table(dtmp)
+myft <- set_caption(myft, "Summary operating characteristics for 4 arm fixed size design")
+
+myft
+```
+</div>
+
+### Arm-level summaries
+
+Arm level characteristics table headings:
+
++ `scen` - simulation scenario (see above)
++ `arm` - treatment arm (1 = SOC)
++ `enabled_from` - time at which arm activated (in interim analyses)
++ `p_tru` - true underlying probability of response
++ `p_est` - expected probability of response (based on posterior)
++ `p_sd` - expected sd of probability of response
++ `active` - proportion of trials where arm was active
++ `eff_at` - expected number of clusters on arm when identified as effective
++ `ineff_at` - expected number of clusters on arm when identified as ineffective
++ `equ_at` - expected number of clusters on arm when identified as equivalent
++ `is_eff` - proportion of trials where arm identified as effective
++ `is_ineff` - proportion of trials where arm identified as futile
++ `is_equ` - proportion of trials where arm identified as equivalent to soc 
++ `nk` - expected number of clusters on arm
++ `nki` - expected number of participants on arm
+
+If a trial is activated at time 0 then it is activated from the start of the trial.
+A trial activated at time 1 will be allocated participants after the first interim and then will enter the analyses and decision framework at the second analysis.
+
+```{r, echo = F}
+gen_arm_table <- function(dtmp){
+  
+  shade_cols <- names(dtmp)[-1]
+  shade_rows <- seq(1, nrow(dtmp), by = 2)
+  myft <- flextable(dtmp) 
+  myft <- theme_vanilla(myft)
+  myft <- colformat_num(x = myft, 
+                        j = c("p_tru", "p_est", "p_sd"),
+                        big.mark=",", 
+                        digits = 3, 
+                        na_str = "")
+  myft <- colformat_num(x = myft, 
+                        j = c("active", "is_best", "is_eff", "is_ineff", "is_equ"),
+                        big.mark=",", 
+                        digits = 2, 
+                        na_str = "")
+  myft <- colformat_num(x = myft, 
+                        j = c("eff_at", "ineff_at", "equ_at", "nk", "nki"),
+                        big.mark=",", 
+                        digits = 1, 
+                        na_str = "")
+  myft <- bg(x = myft, 
+             i = shade_rows,
+             j = shade_cols,
+             bg = "#e0e0e0")
+  myft <- autofit(myft)
+  myft
+}
+```
+
+#### Response adaptive randomisation (3 Arm)
+
+<div style="margin-bottom:50px;">
+```{r, echo = F, include = T, eval = T}
+myft <- gen_arm_table(darm1)
+myft <- set_caption(myft, "Arm-level operating characteristics for 3 arm RAR design")
+myft
+```
+</div>
+
+#### Response adaptive randomisation (4 arm)
+
+<div style="margin-bottom:50px;">
+```{r, echo = F, include = include_rar4, eval = include_rar4}
+myft <- gen_arm_table(darm2)
+myft <- set_caption(myft, "Arm-level operating characteristics for 4 arm RAR design")
+myft
+```
+</div>
+
+#### Fixed size 3 arm trial
+
+<div style="margin-bottom:50px;">
+```{r, echo = F, include = F, eval = F}
+myft <- gen_arm_table(darm3)
+myft <- set_caption(myft, "Arm-level operating characteristics for 3 arm fixed design")
+myft
+```
+</div>
+
+#### Fixed size 4 arm trial
+
+<div style="margin-bottom:50px;">
+```{r, echo = F, include = include_extra, eval = include_extra}
+myft <- gen_arm_table(darm4)
+myft <- set_caption(myft, "Arm-level operating characteristics for 4 arm fixed design")
+myft
+```
+</div>
+
+
+
+
+
+
+# Appendix
+
+Formula for ICC
+
+$\text{ICC} = \frac{\sigma_{C}^2}{\sigma_{C}^2 + (\pi^2)/ 3}$

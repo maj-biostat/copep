@@ -8,6 +8,7 @@ library(tictoc)
 library(rjags)
 library(coda)
 library(digest)
+library(rstanmodels)
 
 source("data.R")
 source("util.R")
@@ -25,12 +26,12 @@ idxscen <- read.csv("scenarios.cfg", row.names = NULL, header = F)[, 1]
 #' @export
 #'
 #' @examples
-#' i=1; x=1
+#' i=2; x=1
 #' cfg_interface = cfg_fixed4(trial_interface = trial_Fixed_BR, outdir = "outfix4", nsim = 3)
-#' cfg_interface = cfg_fixed(trial_interface = trial_Fixed_BR, outdir = "outfix", nsim = 3)
+#' cfg_interface = cfg_fixed(trial_interface = trial_Fixed_BR, outdir = "outfix", nsim = 25)
 #' cfg_interface = cfg_br_3(trial_interface = trial_GS_BR, outdir = "outbr", nsim = 1)
-#' cfg_interface = cfg_rar_3(trial_interface = trial_GS_RAR, outdir = "outrar", nsim = 5)
-#' cfg_interface = cfg_rar_4(trial_interface = trial_GS_RAR, outdir = "outrar4", nsim = 5)
+#' cfg_interface = cfg_rar_3(trial_interface = trial_GS_RAR, outdir = "outrar", nsim = 10)
+#' cfg_interface = cfg_rar_4(trial_interface = trial_GS_RAR, outdir = "outrar4", nsim = 10)
 sim <- function(cfg_interface = NULL){
 
   # convenience var
@@ -54,6 +55,7 @@ sim <- function(cfg_interface = NULL){
   
   # Only run the scenarios that are defined in config.
   # for(i in 1:nrow(dpars)){
+  i=1
   for(i in idxscen){
     
     if(!(i %in% 1:length(lpar$scenarios))){
@@ -110,19 +112,22 @@ sim <- function(cfg_interface = NULL){
       arm_status <- list(K = n_arms,
                          active = lpar$arms_activ_at_start,
                          enabled_for_anly = lpar$arms_enabled_for_anly,
-                         eff_at = rep(NA, n_arms),
-                         fut_at = rep(NA, n_arms),
+                         is_best = rep(NA, n_arms),
+                         is_sup = rep(NA, n_arms),
+                         is_inf = rep(NA, n_arms),
+                         is_equ = rep(NA, n_arms),
+                         sup_at = rep(NA, n_arms),
+                         inf_at = rep(NA, n_arms),
                          equ_at = rep(NA, n_arms),
-                         arms_in_post = rep(F, n_arms),
+                         arms_in_post = rep(NA, n_arms),
                          p_rand = rep(0, n_arms),
                          p_best = rep(0, n_arms),
                          p_beat_soc = rep(0, n_arms),
                          p_equiv_soc = rep(0, n_arms),
-                         is_sup = rep(F, n_arms),
-                         is_fut = rep(F, n_arms),
-                         is_equ = rep(F, n_arms),
                          var_k = rep(0, n_arms),
-                         nk = rep(0, n_arms))
+                         nk = rep(0, n_arms),
+                         nki = rep(0, n_arms),
+                         p_emp = rep(0, n_arms))
       
       list(d=d, arm_status = arm_status)
     })
@@ -157,7 +162,8 @@ sim <- function(cfg_interface = NULL){
     
     lres = mclapply(X=1:length(ld), mc.cores=ncores, FUN=function(x) {
       
-      lmet <- tryCatch( lpar$trial_interface(d = ld[[x]]$d, 
+      lmet <- tryCatch( lpar$trial_interface(scen = lpar$scenarios[[i]]$scen,
+                                             d = ld[[x]]$d, 
                                              arm_status = ld[[x]]$arm_status, 
                                              lpar, 
                                              x) ,
@@ -192,11 +198,9 @@ sim <- function(cfg_interface = NULL){
 
 # sim(cfg_fixed4(trial_interface = trial_Fixed_BR, outdir = "outfix4", nsim = 2000))
 
-# sim(cfg_rar_3(trial_interface = trial_GS_RAR, outdir = "outrar", nsim = 5000))
-# 
-# sim(cfg_fixed(trial_interface = trial_Fixed_BR, outdir = "outfix", nsim = 5000))
-
-sim(cfg_rar_4(trial_interface = trial_GS_RAR, outdir = "outrar4", nsim = 1000))
+sim(cfg_rar_3(trial_interface = trial_GS_RAR, outdir = "outrar", nsim = 5000))
+#sim(cfg_fixed(trial_interface = trial_Fixed_BR, outdir = "outfix", nsim = 1000))
+sim(cfg_rar_4(trial_interface = trial_GS_RAR, outdir = "outrar4", nsim = 5000))
 
 
 

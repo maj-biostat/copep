@@ -41,6 +41,7 @@ rar.R
 *.ipynb
 *.log
 BayesJAGSModel.txt
+*.sh
 
 
 
