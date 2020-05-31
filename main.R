@@ -8,7 +8,7 @@ library(tictoc)
 library(rjags)
 library(coda)
 library(digest)
-library(rstanmodels)
+library(rstanmod1)
 
 source("data.R")
 source("util.R")
@@ -36,7 +36,9 @@ sim <- function(cfg_interface = NULL){
 
   # convenience var
   lpar <- cfg_interface
-
+  
+  message(Sys.time(), " Starting new simulation, creating directory ", lpar$outdir)
+  
   dir.create(file.path(lpar$outdir), showWarnings = FALSE)
   
 
@@ -64,10 +66,10 @@ sim <- function(cfg_interface = NULL){
       next
     }
     
-    message(Sys.time(), " ", lpar$outdir, ", starting scenario ", lpar$scenarios[[i]]$scen)
+    message(Sys.time(), " Output dir ", lpar$outdir, ", starting scenario ", lpar$scenarios[[i]]$scen)
 
     lpar$scen_idx <- i
-    lpar$Nmax <- lpar$scenarios[[i]]$Nc
+    lpar$Nmax <- lpar$scenarios[[i]]$Nmax
     lpar$mu_n_household <- lpar$scenarios[[i]]$mu_n_household
     lpar$sig_u0 <- lpar$scenarios[[i]]$sig_u0
     lpar$prob_symp <- lpar$scenarios[[i]]$prob_symp
@@ -178,7 +180,7 @@ sim <- function(cfg_interface = NULL){
       lmet
     })
     
-    message(get_hash(), " Simulation ", lpar$outdir, " complete, saving to file.")
+    message(Sys.time(), " Simulation ", lpar$outdir, " complete, saving to file.")
     
     # lres contains dataset
     lout <- list(lpar = lpar, lres = lres)
@@ -196,11 +198,8 @@ sim <- function(cfg_interface = NULL){
 # is an index supplied by a config file that tells each VM which set of 
 # scenarios to run.
 
-# sim(cfg_fixed4(trial_interface = trial_Fixed_BR, outdir = "outfix4", nsim = 2000))
-
-sim(cfg_rar_3(trial_interface = trial_GS_RAR, outdir = "outrar", nsim = 100))
-#sim(cfg_fixed(trial_interface = trial_Fixed_BR, outdir = "outfix", nsim = 1000))
-sim(cfg_rar_4(trial_interface = trial_GS_RAR, outdir = "outrar4", nsim = 100))
+sim(cfg_rar_3(trial_interface = trial_GS_RAR, outdir = "outrar", nsim = 1000))
+sim(cfg_rar_4(trial_interface = trial_GS_RAR, outdir = "outrar4", nsim = 1000))
 
 
 

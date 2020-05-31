@@ -12,6 +12,34 @@ get_hash <- function(){
 }
 
 
+compile_rstudent <- function(){
+  
+  library(rstan)
+  
+  model_code <- 'functions {  real my_rstudent_rng(real nu, real mu, real sigma) {  return student_t_rng(nu, mu, sigma); } } model {}'
+  expose_stan_functions(stanc(model_code = model_code))
+  
+}
+
+test_rstudent <- function(){
+  
+  
+  if(!exists("my_rstudent_rng")){
+    message("Call compile_rstudent first")
+  } else{
+    x <- unlist(lapply(1:100000, function(x) my_rstudent_rng(7, 0, 1.5)))
+    hist(x, prob = T)
+    curve(dnorm, -5, 5, add = T, col = "red")
+    
+    hist(expit(x), prob = T)
+    
+    
+  }
+  
+  
+  
+  
+}
 
 #' Probability a column is minimum
 #'
@@ -304,10 +332,22 @@ cfg <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   # Utility approach
   lpar <- list()
   
+  lpar$cluster_rand <- F
+  
   lpar$save_all <- F
   
-  lpar$stanmodel <- 9 # alternatively use 5
+  # rstan
+  lpar$stanmodel <- 9 
+  lpar$chains <- 1
+  lpar$thin <- 1
+  lpar$warmup <- 1000
+  lpar$iter <- 5000
+  lpar$refresh <- 0
+  lpar$cores <- 1
+  lpar$control <- list(adapt_delta=0.8)
   
+
+  # sim config
   lpar$outdir <- outdir
   lpar$trial_interface <- trial_interface
   lpar$nsim <- nsim
@@ -320,7 +360,7 @@ cfg <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   # per week - but converted such that a subjects entry time 
   # is in days (not weeks) from start
   lpar$enrl_lwr <- 5
-  lpar$enrl_upr <- 20
+  lpar$enrl_upr <- 10
   lpar$enrl_inc <- 1.01
   
   # Interim every x clusters
@@ -345,14 +385,14 @@ cfg <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   # SD for cluster random effect
   lpar$sig_u0 <- 0.2
   
-  lpar$test_at_day <- 10
+  lpar$test_at_day <- 14
   
   # Decision thresholds
   lpar$thresh_sup <- 0.975
   lpar$thresh_fut <- 0.15
-  lpar$thresh_equ <- 0.92
+  lpar$thresh_equ <- 0.95
   # this is on the log-odds scale
-  lpar$eq_delta <- 0.45
+  lpar$eq_delta <- 0.725
   
   # Whether to keep all the interim posteriors or not
   lpar$keep_intrms <- F
@@ -395,7 +435,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   sig_u0_2 <- get_sd_for_icc(0.02)
   
   lpar$scenarios[[1]] <- list(scen = "1-0", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15),
@@ -406,7 +446,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400) # implies not to do interims
   
   lpar$scenarios[[2]] <- list(scen = "1-1", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15),
@@ -417,7 +457,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[3]] <- list(scen = "1-2", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15),
@@ -428,7 +468,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[4]] <- list(scen = "1-3", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.125),
@@ -439,7 +479,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[5]] <- list(scen = "1-4", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1),
@@ -450,7 +490,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[6]] <- list(scen = "2-0", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15),
@@ -461,7 +501,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[7]] <- list(scen = "2-1", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15),
@@ -472,7 +512,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[8]] <- list(scen = "2-2", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15),
@@ -483,7 +523,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[9]] <- list(scen = "2-3", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp =  c(0.15, 0.1, 0.125),
@@ -494,7 +534,7 @@ cfg_fixed <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[10]] <- list(scen = "2-4", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1),
@@ -519,7 +559,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   sig_u0_2 <- get_sd_for_icc(0.1)
   
   lpar$scenarios[[1]] <- list(scen = "1-0", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15, 0.15),
@@ -530,7 +570,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
 
   
   lpar$scenarios[[2]] <- list(scen = "1-1", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15, 0.15),
@@ -540,7 +580,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[3]] <- list(scen = "1-2", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15, 0.15),
@@ -550,7 +590,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[4]] <- list(scen = "1-3", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.125, 0.11),
@@ -560,7 +600,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[5]] <- list(scen = "1-4", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1, 0.085),
@@ -570,7 +610,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[6]] <- list(scen = "2-0", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15, 0.15),
@@ -580,7 +620,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[7]] <- list(scen = "2-1", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15, 0.15),
@@ -590,7 +630,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[8]] <- list(scen = "2-2", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15, 0.15),
@@ -600,7 +640,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[9]] <- list(scen = "2-3", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp =  c(0.15, 0.1, 0.125, 0.11),
@@ -610,7 +650,7 @@ cfg_fixed4 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 400)
   
   lpar$scenarios[[10]] <- list(scen = "2-4", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 3, 
                               sig_u0_1 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1, 0.085),
@@ -635,7 +675,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   sig_u0_2 <- get_sd_for_icc(0.1)
   
   lpar$scenarios[[1]] <- list(scen = "1-0", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.15, 0.15),
@@ -643,7 +683,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 20) # implies not to do interims
   
   lpar$scenarios[[2]] <- list(scen = "1-1", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.15),
@@ -651,7 +691,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 20)
   
   lpar$scenarios[[3]] <- list(scen = "1-2", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.085, 0.15),
@@ -659,7 +699,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 20)
   
   lpar$scenarios[[4]] <- list(scen = "1-3", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.125),
@@ -667,7 +707,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 20)
   
   lpar$scenarios[[5]] <- list(scen = "1-4", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_1, 
                               prob_symp = c(0.15, 0.1, 0.1),
@@ -677,7 +717,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
   # Different ICC
   
   lpar$scenarios[[6]] <- list(scen = "2-0", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.15, 0.15),
@@ -685,7 +725,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 20) # implies not to do interims
   
   lpar$scenarios[[7]] <- list(scen = "2-1", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.1, 0.15),
@@ -693,7 +733,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 20)
   
   lpar$scenarios[[8]] <- list(scen = "2-2", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.085, 0.15),
@@ -701,7 +741,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 20)
   
   lpar$scenarios[[9]] <- list(scen = "2-3", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.1, 0.125),
@@ -709,7 +749,7 @@ cfg_rar_3 <- function(trial_interface = NULL, outdir = NULL, nsim = 3){
                               interim_at = 20)
   
   lpar$scenarios[[10]] <- list(scen = "2-4", 
-                              Nc = 450, 
+                              Nmax = 500, 
                               mu_n_household = 1, 
                               sig_u0 = sig_u0_2, 
                               prob_symp = c(0.15, 0.1, 0.1),

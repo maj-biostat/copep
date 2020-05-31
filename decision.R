@@ -120,11 +120,11 @@ effective_v_soc <- function(a_s, t_s, lpar){
     # If we haven't previously found a sup arm then set the sample size, 
     # otherwise leave as it.
     if(is.na(a_s$inf_at[1])){
-      a_s$inf_at[1] <- a_s$nk[1]
+      a_s$inf_at[1] <- a_s$nki[1]
     }
 
     a_s$is_sup[res_win] <- T
-    a_s$sup_at[res_win] <- a_s$nk[res_win]
+    a_s$sup_at[res_win] <- a_s$nki[res_win]
     
     # Can consider trial as a success (counts towards power)
     if(is.na(t_s$sup)){
@@ -184,7 +184,7 @@ ineffective_v_soc <- function(a_s, t_s, lpar){
     
     for(j in res_off){
       if(is.na(a_s$inf_at[j])){
-        a_s$inf_at[j] <- a_s$nk[j]
+        a_s$inf_at[j] <- a_s$nki[j]
       }
     }
 
@@ -258,7 +258,7 @@ equivalent_v_soc <- function(a_s, t_s, lpar){
     
     for(j in res_equiv){
       if(is.na(a_s$equ_at[j])){
-        a_s$equ_at[j] <- a_s$nk[j]
+        a_s$equ_at[j] <- a_s$nki[j]
       }
     }
     
@@ -340,7 +340,7 @@ ineffective_v_effective <- function(post, a_s, t_s, lpar){
                   "   INFERIOR arm ", j, 
                   " inferior to effective arm ", isup)
           
-          a_s$inf_at[j] <- a_s$nk[j]
+          a_s$inf_at[j] <- a_s$nki[j]
           a_s$is_inf[j] <- T
           a_s$active[j] <- F
           

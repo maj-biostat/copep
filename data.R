@@ -83,6 +83,9 @@ pdf_symptoms <- function(idx = NULL){
 #' @examples
 getdat1 <- function(lpar, datid = NULL){
 
+  # The enrollment rates are defined in terms of index cases per week
+  # but the entry_time (see below) is actually later converted to day 
+  # of entry (starting at zero)
   enrl_rate <- numeric(lpar$Nmax)
   enrl_rate <- lpar$enrl_lwr
   for(i in 2:lpar$Nmax){
@@ -93,26 +96,40 @@ getdat1 <- function(lpar, datid = NULL){
     }
   }
   
+  # Entry time of the index case 
   entry_time <- cumsum(c(0, rexp(n = (lpar$Nmax-1), rate=enrl_rate)))
   # entry_time
   
   
   # Cluster size - household/other
   clust_size_1 <- rtpois(lpar$Nmax,
-                       lambda = lpar$mu_n_household,
-                       a = lpar$min_clust_size_1,
-                       b = lpar$max_clust_size_1)
+                           lambda = lpar$mu_n_household,
+                           a = lpar$min_clust_size_1,
+                           b = lpar$max_clust_size_1)  
+  
+  # Introduce some outliers - big clusters
+  clust_size_2 <- rtpois(lpar$Nmax,
+                         lambda = 10,
+                         a = lpar$min_clust_size_1,
+                         b = 20)  
+  
+  clustidx <- rbinom(lpar$Nmax, 1, 0.97)
+  
+  clust_size <- clust_size_1
+  clust_size[clustidx] <- clust_size_1[clustidx]
+  clust_size[!clustidx] <- clust_size_2[!clustidx]
   
   
   
-  id <- cumsum(rep(1, sum(clust_size_1)))
+  id <- cumsum(rep(1, sum(clust_size)))
   n <- length(id)
   
-  clustid <- rep(seq_along(clust_size_1), clust_size_1)
+  clustid <- rep(seq_along(clust_size), clust_size)
   clustididx <- c(1, diff(clustid))
   
   entry_time <- entry_time[clustid] 
   entry_time[clustididx == 0] <- entry_time[clustididx == 0] 
+  # Convert to day of entry
   entry_time <- round(entry_time * 7, 2)
 
 

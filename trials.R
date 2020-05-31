@@ -371,13 +371,36 @@ trial_GS_RAR <- function(scen = NA, d, arm_status, lpar, x){
       # Basically, I am say the analysis up to this time point was based on the following 
       # randomisation scheme. At the first analysis, we didn't have any previous data so all
       # we can do is balanced allocation.
-      tmp <- RAR_alloc(clustid = d$clustid, 
-                       a_s = arm_status,
-                       idxstart, 
-                       idxend, 
-                       interim_idx = i)
-
+      if(lpar$cluster_rand){
+        tmp <- RAR_clust_alloc(clustid = d$clustid,
+                               a_s = arm_status,
+                               idxstart, 
+                               idxend, 
+                               interim_idx = i)
+        
+        
+        # tmp <- RAR_clust_alloc(clustid = d$clustid,
+        #                        a_s = arm_status,
+        #                        1, 
+        #                        nrow(d), 
+        #                        interim_idx = i)
+        
+      } else{
+        tmp <- RAR_alloc(id = d$id,
+                         a_s = arm_status,
+                         idxstart, 
+                         idxend, 
+                         interim_idx = i)
+      }
       
+      # d$arm[1:nrow(d)] <- tmp$rand_arm
+      # arm_status <- tmp$arm_status
+      # d$y[1:nrow(d)] <- unlist(lapply(1:nrow(d), function(j){
+      #   y <- d[j, lpar$arms_start_idx + d$arm[j]]
+      #   y
+      # }))
+      
+
       d$arm[idxstart:idxend] <- tmp$rand_arm
       arm_status <- tmp$arm_status
       d$y[idxstart:idxend] <- unlist(lapply(idxstart:idxend, function(j){
@@ -421,12 +444,20 @@ trial_GS_RAR <- function(scen = NA, d, arm_status, lpar, x){
     message(get_hash(), "   STARTED FINAL, the interims ended at nclust ", 
             lpar$nclustanalys[i], " max ss ", lpar$Nmax)
  
-    tmp <- RAR_alloc(clustid = d$clustid, 
-                     a_s = arm_status,
-                     idxend+1, 
-                     nrow(d), 
-                     interim = 99) # bogus interim id just needs to be bigger than max interim
-    
+    if(lpar$cluster_rand){
+      tmp <- RAR_clust_alloc(clustid = d$clustid, 
+                             a_s = arm_status,
+                             idxend+1, 
+                             nrow(d), 
+                             interim = 99) # bogus interim id just needs to be bigger than max interim
+    } else{
+      tmp <- RAR_alloc(id = d$id,
+                       a_s = arm_status,
+                       idxend+1, 
+                       nrow(d), 
+                       interim_idx = 99)
+    }
+     
     d$arm[(idxend+1):nrow(d)] <- tmp$rand_arm
     arm_status <- tmp$arm_status
   

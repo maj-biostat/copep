@@ -48,7 +48,7 @@ dirc = "outrar"
 
 ```{r, echo = F}
 
-include_rar4 <- T
+include_rar4 <- F
 include_extra <- F
 
 ld1 <- get_results(dirc = "outrar")
@@ -194,20 +194,19 @@ With more arms possibly introduced over time.
 ## Overview
 
 The design is an adaptive cluster RCT. 
-Close contacts, which at the moment is just eligible household members, that are associated with an index case are identified and define to be a cluster (the index case is not considered part of the cluster).
-Each cluster is randomised to a treatment arm or SOC.
-At the time of writing, the Australian pandemic status has low numbers of daily cases and there are some restrictions that limit social mixing. 
-In such a setting, we anticipate cluster sizes to small; smaller than ideal.
-Nevertheless, our simulations have assumed small cluster sizes and so our evaluation of operating characteristics is conservative. 
-Should societal restrictions be eased, which they probably will be, we anticipate that what might reasonably considered to be a cluster of close-contacts could increase in size.
-Of course, this is assuming we are able to adequately trace all the contacts in a cluster.
+Close contacts (syn. eligible household members) associated with an index case are identified and constitute a cluster (Nb. the index case is not considered part of the cluster).
+Each cluster is then randomised to a treatment arm or SOC.
+At the time of writing, the Australian pandemic status has low numbers of daily cases and we therefore anticipate cluster sizes to small, smaller than ideal.
+When societal restrictions are eased we anticipate that the clusters could increase in size.
+Of course, all this assumes we are able to adequately trace all the contacts in a cluster.
 
 Adaptive elements to the design include response adaptive allocation (RAR), the ability to add new arms, sequential analysis and pre-specified decisions for how effective, ineffective and equivalent treatments impact the status of the trial.
 
-The primary endpoint is confirmed SARS-CoV-2 detection from any PCR specimen at day 10 after randomisation (i.e. a binary variable), but for the sake of brevity, we will just use *infected* as representative of an event.
+The primary endpoint is confirmed SARS-CoV-2 detection from any PCR specimen at day 10 after randomisation (i.e. a binary variable). 
+However, for the sake of brevity, we will use *infected* as representative of an event.
 In our evaluation of infections, we consider all members of the cluster regardless of what their (likely unknown) infection status was at the time of entry into the trial.
 
-When conducting an interim analysis, we note that some participants in the data available at the time of the interim will be enrolled, but will not have reached their endpoint. 
+When conducting an interim analysis, we note that some participants in the data that were available at the time of the interim will be enrolled, but will not have reached their endpoint. 
 Currently, we do not impute these data but rather analyse only the observed data points.
 Finally, treatments are evaluated independently, i.e. interaction effects are not currently considered.
 
@@ -215,7 +214,7 @@ We assume that three arms are active at the start of the trial (and for these si
 However, the trial can be extended up to any number of arms, subject to the limits of operational practicality and funding.
 RAR is enabled following a burn in period of equal allocation to each arm.
 
-The model used for all analyses is a logistic regression with varying intercept for each cluster and parameterised with terms for the intercept and treatment effects associated with each arm.
+The model used for all analyses is a logistic regression with varying intercept for each cluster and fixed terms for the overall intercept and treatment effects.
 The model gives estimates for the log-odds of infection and log-odds-ratios for treatment effects.
 
 All comparisons are made solely relative to the SOC until a treatment arm is deemed effective. 
@@ -230,7 +229,7 @@ Moreover, we might determine a treatment to have a low chance of *effeciveness* 
 Purely for convenience we will refer to such an arm as being *ineffective* and refrain from using the term *inferior* unless the above mentioned symmetry holds.
 
 Another term that we use is *equivalence* which is defined as in terms of the probability mass of the distribution of the difference between the infection rate for any two arm being within a given pre-specified margin.
-In lay terms, *equivalence* literally aligns with the common conception of two treatments having the same observed infection response.
+In lay terms, *equivalence* aligns with the common conception of two treatments having the same observed infection response.
 
 The use of the term *futile* in relation to a treatment arm is reserved purely for those cases where the posterior predictive distribution is examined.
 As we do not use predictive probabilities in the copep trial, we do not use the term *futile* as a designation of treatment status.
@@ -288,8 +287,9 @@ Trial level characteristics table headings:
 + `thresh_sup` - probability threshold to declare effective arm
 + `thresh_fut` - probability threshold to declare futile arm
 + `thresh_equ` - probability threshold to declare equivalent arm within +/- 0.5 log-odds
++ `equ_delta` - equivalence margin (log odds)
 + `stop` - proportion of trials stopped for effectiveness, futility or equivalence (all arms futile/equiv)
-+ `eff` - proportion of trials where effective arm identified
++ `eff` - proportion of trials where effective arm identified (aka *statistical power*)
 + `ineff` - proportion of trials deemed ineffective (translates to either ineffective or equivalent)
 + `no_decision` - proportion of trials where neither of the above conclusions were reached
 + `pb` - proportion of trials where best arm identified based on probability of being best

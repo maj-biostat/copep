@@ -20,6 +20,7 @@ source("decision.R")
 
 
 
+# test_RAR_clust_alloc()
 # test_RAR_alloc()
 # test_decision_intrm()
 # test_picked_best()
@@ -32,24 +33,25 @@ post_samples <- function(){
   lpost <- list()
   
   set.seed(1)
+  mysd <- 0.25
   # Note that max.col used by prob_min uses random as the ties method
   # and therefore we need quite a lot of samples before the prob_min are
   # approx all equal.
-  a1 <- rnorm(10000, qlogis(0.1), 1)
-  a2 <- rnorm(10000, qlogis(0.1), 1)
-  a3 <- rnorm(10000, qlogis(0.1), 1)
-  a4 <- rnorm(10000, qlogis(0.1), 1)
-  junk <- rnorm(10000, qlogis(0.1), 1)
+  a1 <- rnorm(10000, qlogis(0.1), mysd)
+  a2 <- rnorm(10000, qlogis(0.1), mysd)
+  a3 <- rnorm(10000, qlogis(0.1), mysd)
+  a4 <- rnorm(10000, qlogis(0.1), mysd)
+  junk <- rnorm(10000, qlogis(0.1), mysd)
   
   lpost$post3_all_equal <- cbind(a1, a2, a3, junk)
   lpost$post4_all_equal <- cbind(a1, a2, a3, a4, junk)
   
   set.seed(1)
-  a1 <- rnorm(1000, qlogis(0.1), 1)
-  a2 <- rnorm(1000, qlogis(0.1), 1)
-  a3 <- rnorm(1000, qlogis(0.1), 1)
-  a4 <- rnorm(1000, qlogis(0.1), 1)
-  junk <- rnorm(1000, qlogis(0.1), 1)
+  a1 <- rnorm(1000, qlogis(0.1), mysd)
+  a2 <- rnorm(1000, qlogis(0.1), mysd)
+  a3 <- rnorm(1000, qlogis(0.1), mysd)
+  a4 <- rnorm(1000, qlogis(0.1), mysd)
+  junk <- rnorm(1000, qlogis(0.1), mysd)
   
   lpost$post3_1_best <- cbind(a1-1.5, a2, a3, junk)
   lpost$post3_3_best <- cbind(a1, a2, a3-1.5, junk)
@@ -84,7 +86,91 @@ post_samples <- function(){
 }
 
 
+get_a_s <- function(){
+  a_s <- list(K = n_arms,
+              active = c(T, T, T),
+              enabled_for_anly = c(1, 1, 1),
+              is_best = rep(NA, n_arms),
+              is_sup = rep(NA, n_arms),
+              is_inf = rep(NA, n_arms),
+              is_equ = rep(NA, n_arms),
+              sup_at = rep(NA, n_arms),
+              inf_at = rep(NA, n_arms),
+              equ_at = rep(NA, n_arms),
+              arms_in_post = rep(T, n_arms),
+              p_rand = rep(0, n_arms),
+              p_best = rep(0, n_arms),
+              p_beat_soc = rep(0, n_arms),
+              p_equiv_soc = rep(0, n_arms),
+              var_k = rep(0, n_arms),
+              nk = rep(100, n_arms),
+              nki = rep(100, n_arms),
+              p_emp = rep(0, n_arms))
+  a_s
+}
+
+
+get_t_s <- function(){
+  t_s <- list(scen = "scen", 
+              stop = NA,# trial should stop (for sup, inf, equiv) determined at interim
+              sup = NA, # stopped trial at interim since found superiori treatment
+              inf_or_equ = NA, # stopped trial at interim for futility/equivalence - all arms futile/equivalent
+              no_decision = NA,
+              pb = F,  # picked the best arm
+              fa = F,  # ran all the way to the final analysis
+              na = 0,  # current analysis number
+              nk = 100,  # current total number of clusters
+              nki = 100, # current total number of participants 
+              durn = 0)# elapsed duration of trial  
+  t_s
+}
+
+
 test_RAR_alloc <- function(){
+  
+  # Balanced randomisation interim 1
+  message("----> TESTING RAR_alloc")
+  
+  
+  message("----> TEST Randomisation during first interim")
+  a_s <- list(K = 4, 
+              active = c(T, T, T, F),
+              arms_enabled_for_anly = c(1, 1, 1, 2),
+              arms_in_post = c(T, T, T, F),
+              p_rand = rep(0, 4),
+              p_best = c(0.1, 0.2, 0.4, 0),
+              p_beat_soc = c(0, 0.7, 0.5, DUMVAL),
+              var_k = c(0.2, 0.3, 0.3, DUMVAL))
+  
+  d <- tibble(clustid = rep(1:300, each = 2))
+  
+  
+  # Indexes are participant level.
+  idxstart = 1; idxend = 100; interim_idx = 1
+  
+  
+  res <- RAR_alloc(d$id, 
+                   a_s, 
+                   idxstart, idxend, interim_idx)
+  
+  stopifnot(res$arm_status$K == a_s$K)
+  stopifnot(res$arm_status$active == a_s$active)
+  stopifnot(res$arm_status$enabled_for_anly == a_s$enabled_for_anly)
+  stopifnot(res$arm_status$arms_in_post == a_s$arms_in_post)
+  # Shouldn't get updated in this case
+  stopifnot(res$arm_status$p_best == a_s$p_best)
+  # Cannot compare NA
+  stopifnot(res$arm_status$p_beat_soc[!is.na(res$arm_status$p_beat_soc)] == 
+              a_s$p_beat_soc[!is.na(res$arm_status$p_beat_soc)])
+  stopifnot(res$arm_status$var_k[!is.na(res$arm_status$var_k)] == 
+              a_s$var_k[!is.na(res$arm_status$var_k)])
+  stopifnot(res$arm_status$p_rand == c(1/3, 1/3, 1/3, 0))
+  
+  stopifnot(1:3 %in% res$rand_arm)
+  stopifnot(!(4 %in% res$rand_arm))
+}
+
+test_RAR_clust_alloc <- function(){
   
   # Balanced randomisation interim 1
   message("----> TESTING RAR_alloc")
@@ -418,44 +504,60 @@ test_decision_intrm <- function(){
   lpar$prob_symp = c(0.15, 0.15, 0.15, 0.15)
   lpar$thresh_sup <- 0.9
   lpar$thresh_fut <- 0.1
+  lpar$thresh_equ <- 0.92
+  # this is on the log-odds scale
+  lpar$eq_delta <- 0.45
+  
 
   message("\n\n TESTS ON 3 ARMS")
   
   # 
   message("----> TEST 1 Decision with 3 arms active prior to activating arm 4. All arms are equivalent.")
   nk <- c(36,30,34, 0); # sum(nk)
-  a_s <- list(K = 4, 
-                   active = c(T, T, T, F),
-                   sup_at = rep(NA, 4),
-                   inf_at = rep(NA, 4),
-                   arms_in_post = c(T, T, T, F),
-                   p_rand = rep(0, 4),
-                   p_best = c(0.1, 0.2, 0.4, DUMVAL),
-                   p_beat_soc = c(0, 0.7, 0.5, DUMVAL),
-                   is_sup = rep(F, 4),
-                   is_inf = rep(F, 4),
-                   var_k = c(0.2, 0.3, 0.3, DUMVAL),
-              nk = nk)
-
-  trial_status <- list(stop = F,# trial should stop (for eff or fut) determined at interim
-                       win = F, # won regardless of whether at interim or final
-                       eff = F, # stopped trial at interim since found effective treatment
-                       inf_or_equ = F, # stopped trial at interim for futility - all arms futile
+  arm_status <- list(K = 4,
+                     active = c(T, T, T, F),
+                     enabled_for_anly = c(1, 1, 1, 10),
+                     is_best = rep(NA, 4),
+                     is_sup = rep(NA, 4),
+                     is_inf = rep(NA, 4),
+                     is_equ = rep(NA, 4),
+                     sup_at = rep(NA, 4),
+                     inf_at = rep(NA, 4),
+                     equ_at = rep(NA, 4),
+                     arms_in_post = c(T, T, T, F),
+                     p_rand = rep(0, 4),
+                     p_best = c(0.1, 0.2, 0.4, DUMVAL),
+                     p_beat_soc = c(0, 0.7, 0.5, DUMVAL),
+                     p_equiv_soc = rep(0, 4),
+                     var_k = c(0.2, 0.3, 0.3, DUMVAL),
+                     nk = nk,
+                     nki = rep(0, 4),
+                     p_emp = rep(0, 4))
+  
+  trial_status <- list(scen = "scen", 
+                       stop = NA,# trial should stop (for sup, inf, equiv) determined at interim
+                       sup = NA, # stopped trial at interim since found superiori treatment
+                       inf_or_equ = NA, # stopped trial at interim for futility/equivalence - all arms futile/equivalent
+                       no_decision = NA,
                        pb = F,  # picked the best arm
-                       nk = 100  # current total number of clusters
-                       )
+                       fa = F,  # ran all the way to the final analysis
+                       na = 0,  # current analysis number
+                       nk = 100,  # current total number of clusters
+                       nki = 0, # current total number of participants 
+                       durn = 0)# elapsed duration of trial  
   
   set.seed(1)
   a_s$p_best[1:3] <- prob_min(-lpost$post3_all_equal[, 1:3])
   set.seed(1)
-  a_s$p_beat_soc[1:3] <- prob_lt(-lpost$post3_all_equal[, 1:3])
+  a_s$p_beat_soc[1:3] <- prob_lt(lpost$post3_all_equal[, 1], lpost$post3_all_equal[, 2:3])
   a_s$var_k[1:3] <- apply(lpost$post3_all_equal[, 1:3], 2, var)
   
   set.seed(1)
-  res <- decision_intrm(post = lpost$post3_all_equal, 
-                        a_s = a_s, 
-                        t_s = trial_status,
-                        lpar)
+  res <- decision(post = lpost$post3_all_equal, 
+                  a_s = a_s, 
+                  t_s = trial_status,
+                  lpar)
+                        
                  
   stopifnot(res$arm_status$K == a_s$K)
   stopifnot(res$arm_status$active == a_s$active)
@@ -2628,52 +2730,247 @@ test_prob_lt <- function(){
 }
 
 
+test_prob_equiv <- function(){
+  
+  message("----> TESTING prob_equiv")
+  
+  lpost <- post_samples()
+  lpar <- list()
+  lpar$thresh_sup <- 0.9
+  lpar$thresh_fut <- 0.1
+  lpar$thresh_equ <- 0.92
+  # this is on the log-odds scale
+  lpar$eq_delta <- 0.45
+  
+  message("----> TEST all active, all equiv")
+  res <- prob_equiv(soc = lpost$post3_all_equal[, 1], 
+                    m = lpost$post3_all_equal[, 2:3],
+                    eq_delta = lpar$eq_delta)
+  stopifnot(res[1]==0)
+  stopifnot(all(res[2:3]>res[1]))  
+}
+
+
 test_compute_decision_probs <- function(){
   
   
   message("----> TESTING compute_decision_probs")
   
   lpost <- post_samples()
+  
+  lpar <- list()
+  lpar$thresh_sup <- 0.9
+  lpar$thresh_fut <- 0.1
+  lpar$thresh_equ <- 0.92
+  # this is on the log-odds scale
+  lpar$eq_delta <- 0.45
+  
 
   message("----> TEST Three arms in post, all active")
   a_s <- list(arms_in_post = c(T, T, T), 
               active = c(T, T, T),
               K = 3)
-  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s, lpar$eq_delta)
   stopifnot(all(a_s_test$p_best[1] > a_s_test$p_best[-1]))
+  stopifnot(all(a_s_test$is_best == c(T, F, F)))
   
   message("----> TEST Three arms in post, soc and 1 other active")
   a_s <- list(arms_in_post = c(T, T, T), 
               active = c(T, F, T),
               K = 3)
-  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s, lpar$eq_delta)
   stopifnot(all(a_s_test$p_best[1] > a_s_test$p_best[-1]))
   stopifnot(a_s_test$p_beat_soc[2] == DUMVAL)
   stopifnot(a_s_test$p_equiv_soc[2] == DUMVAL)
   stopifnot(a_s_test$var_k[2] == DUMVAL)
-  
+  stopifnot(all(a_s_test$is_best == c(T, F, F)))
   
   message("----> TEST Three arms in post, only soc active")
   a_s <- list(arms_in_post = c(T, T, T), 
               active = c(T, F, F),
               K = 3)
-  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s, lpar$eq_delta)
   stopifnot(all(a_s_test$p_best[1] > a_s_test$p_best[-1]))
   
   message("----> TEST Three arms in post, soc inactive, others active")
   a_s <- list(arms_in_post = c(T, T, T), 
               active = c(F, T, T),
               K = 3)
-  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s, lpar$eq_delta)
   stopifnot(all(a_s_test$p_beat_soc[2:3] != DUMVAL))
   
   message("----> TEST Three arms in post, soc inactive, and 1 other active")
   a_s <- list(arms_in_post = c(T, T, T), 
               active = c(F, F, T),
               K = 3)
-  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s)
+  a_s_test <- compute_decision_probs(lpost$post3_1_best, a_s, lpar$eq_delta)
   stopifnot(a_s_test$p_beat_soc[2] == DUMVAL & a_s_test$p_beat_soc[3] != DUMVAL)
   
+
+}
+
+
+
+test_effective_v_soc <- function(){
   
+  message("----> TESTING effective_v_soc")
+  
+  lpost <- post_samples()
+  
+  lpar <- list()
+  lpar$thresh_sup <- 0.9
+  lpar$thresh_fut <- 0.1
+  lpar$thresh_equ <- 0.90
+  # this is on the log-odds scale
+  lpar$eq_delta <- 0.65
+  lpar$prob_symp <- rep(0.15, 3)
+  n_arms <- 3
+  
+  message("----> TEST Three arms in post, all active, one (non-soc arm) effective")
+  t_s <- get_t_s()
+  a_s <- get_a_s()
+  
+  a_s <- compute_decision_probs(lpost$post3_3_best, a_s, lpar$eq_delta)
+  tmp <- effective_v_soc(a_s = a_s, t_s = t_s, lpar = lpar)
+  a_s <- tmp$a_s
+  t_s <- tmp$t_s
+  
+  stopifnot(a_s$active[1] == F)
+  stopifnot(a_s$inf_at[1] == 100)
+  stopifnot(all(is.na(a_s$inf_at[2:3])))
+  stopifnot(a_s$is_sup[3] == T)
+  stopifnot(a_s$sup_at[3] == 100)
+  stopifnot(sum(a_s$active) == 2)
+  stopifnot(t_s$sup == T)
+  stopifnot(t_s$inf_or_equ == F)
+  
+  
+  message("----> TEST Three arms in post, all active, two (non-soc arm) effective")
+  t_s <- get_t_s()
+  a_s <- get_a_s()
+  
+  a_s <- compute_decision_probs(lpost$post3_2_3_best, a_s, lpar$eq_delta)
+  tmp <- effective_v_soc(a_s = a_s, t_s = t_s, lpar = lpar)
+  a_s <- tmp$a_s
+  t_s <- tmp$t_s
+  
+  stopifnot(a_s$active[1] == F)
+  stopifnot(a_s$inf_at[1] == 100)
+  stopifnot(all(is.na(a_s$inf_at[2:3])))
+  stopifnot(all(a_s$is_sup[2:3] == T))
+  stopifnot(all(a_s$sup_at[2:3] == 100))
+  stopifnot(sum(a_s$active) == 2)
+  stopifnot(t_s$sup == T)
+  stopifnot(t_s$inf_or_equ == F)
+  
+
+  message("----> TEST Three arms in post, 2/3 active, one (non-soc arm) effective")
+  t_s <- get_t_s()
+  a_s <- get_a_s()
+  a_s$active[2] <- F
+  
+  a_s <- compute_decision_probs(lpost$post3_3_best, a_s, lpar$eq_delta)
+  tmp <- effective_v_soc(a_s = a_s, t_s = t_s, lpar = lpar)
+  a_s <- tmp$a_s
+  t_s <- tmp$t_s
+  
+  stopifnot(a_s$active[1] == F)
+  stopifnot(a_s$inf_at[1] == 100)
+  stopifnot(all(is.na(a_s$inf_at[2:3])))
+  stopifnot(all(a_s$is_sup[3] == T))
+  stopifnot(all(a_s$sup_at[3] == 100))
+  stopifnot(sum(a_s$active) == 1)
+  stopifnot(t_s$sup == T)
+  stopifnot(t_s$inf_or_equ == F)
+  
+  
+  message("----> TEST Three arms in post, soc inactive, one already effective, now new one effective")
+  t_s <- get_t_s()
+  a_s <- get_a_s()
+  a_s$active[1] <- F
+  a_s$inf_at[1] <- 50
+  a_s$is_sup[2] <- T
+  a_s$sup_at[2] <- 50
+  
+  a_s <- compute_decision_probs(lpost$post3_2_3_best, a_s, lpar$eq_delta)
+  tmp <- effective_v_soc(a_s = a_s, t_s = t_s, lpar = lpar)
+  a_s <- tmp$a_s
+  t_s <- tmp$t_s
+  
+  stopifnot(a_s$active[1] == F)
+  stopifnot(a_s$inf_at[1] == 50)
+  stopifnot(all(is.na(a_s$inf_at[2:3])))
+  stopifnot(all(a_s$is_sup[3] == T))
+  stopifnot(all(a_s$sup_at[3] == 100))
+  stopifnot(sum(a_s$active) == 2)
+  stopifnot(t_s$sup == T)
+  stopifnot(t_s$inf_or_equ == F)
+
+  message("----> TEST Three arms in post, all active, non effective")
+  
+  
+  message("----> TEST Three arms in post, 2/3 active, non effective")
+  
+  
+  
+  # dtmp <- data.frame(y = rbinom(10, 1, 0.2),
+  #                    cid = c(rep(1,5), rep(2, 5)),
+  #                    id = c(1:5, 5:9),
+  #                    x = c(0, 1,
+  #                          0, 1,
+  #                          1, 1,
+  #                          0, 1,
+  #                          0, 1))
+  # 
+  # 
+  # brms::make_stancode(y ~ x + (1|cid) + (1|id), data = dtmp)
+  
+  
+}
+
+
+
+test_equivalent_v_soc <- function(){
+  
+  message("----> TESTING equivalent_v_soc")
+  
+  lpost <- post_samples()
+  
+  lpar <- list()
+  lpar$thresh_sup <- 0.9
+  lpar$thresh_fut <- 0.1
+  lpar$thresh_equ <- 0.90
+  # this is on the log-odds scale
+  lpar$eq_delta <- 0.65
+  lpar$prob_symp <- rep(0.15, 3)
+  n_arms <- 3
+  
+  message("----> TEST Three arms in post, all active, all equiv")
+  trial_status <- list(scen = "scen", 
+                       stop = NA,# trial should stop (for sup, inf, equiv) determined at interim
+                       sup = NA, # stopped trial at interim since found superiori treatment
+                       inf_or_equ = NA, # stopped trial at interim for futility/equivalence - all arms futile/equivalent
+                       no_decision = NA,
+                       pb = F,  # picked the best arm
+                       fa = F,  # ran all the way to the final analysis
+                       na = 0,  # current analysis number
+                       nk = 100,  # current total number of clusters
+                       nki = 0, # current total number of participants 
+                       durn = 0)# elapsed duration of trial  
+  
+  a_s <- list(arms_in_post = c(T, T, T), 
+              active = c(T, T, T),
+              K = n_arms,
+              equ_at = rep(NA, n_arms),
+              nk = rep(100, n_arms),
+              is_equ = rep(NA, n_arms),
+              is_best = rep(NA, n_arms),
+              is_sup = rep(NA, n_arms),
+              is_inf = rep(NA, n_arms)
+              )
+  a_s <- compute_decision_probs(lpost$post3_all_equal, a_s, lpar$eq_delta)
+  equivalent_v_soc(a_s = a_s, t_s = trial_status, lpar = lpar)
+  
+  stopifnot(a_s_test$p_beat_soc[2] == DUMVAL & a_s_test$p_beat_soc[3] != DUMVAL)
 }
   
